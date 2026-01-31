@@ -1,0 +1,22 @@
+---
+created: "2026-01-31"
+id: D003
+oneliner: YAML frontmatter + Markdown body for .eng files
+status: active
+topic: file-format
+type: decision
+---
+
+# YAML frontmatter + Markdown body for .eng files
+
+## Context
+
+(Add context here)
+
+## Decision
+
+YAML frontmatter + Markdown body for .eng files
+
+## Rationale
+
+Machine-readable metadata with human-readable content, similar to Jekyll/Hugo

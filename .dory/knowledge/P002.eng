@@ -1,0 +1,17 @@
+---
+created: "2026-01-31"
+domain: cli
+id: P002
+oneliner: Use --body flag or stdin for programmatic content input
+type: pattern
+---
+
+# Use --body flag or stdin for programmatic content input
+
+## Pattern
+
+Use --body flag or stdin for programmatic content input
+
+## Implementation
+
+(Add implementation details here)

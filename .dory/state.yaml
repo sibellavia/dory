@@ -1,0 +1,9 @@
+last_updated: 2026-01-31T21:53:20.581317+01:00
+goal: Explore token-efficient formats and relation structures
+progress: Core implementation complete, renamed to Dory
+next:
+    - Prototype refs field for lightweight linking
+    - Add edges section to index.yaml for causal chains
+    - Consider compact mode for agent consumption
+    - Add tests
+    - Publish to GitHub

@@ -1,0 +1,22 @@
+---
+created: "2026-01-31"
+id: D004
+oneliner: Separate index.yaml from knowledge files
+status: active
+topic: architecture
+type: decision
+---
+
+# Separate index.yaml from knowledge files
+
+## Context
+
+(Add context here)
+
+## Decision
+
+Separate index.yaml from knowledge files
+
+## Rationale
+
+Enables loading lightweight index at session start without reading all content

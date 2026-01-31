@@ -1,0 +1,22 @@
+---
+created: "2026-01-31"
+id: D002
+oneliner: Store oneliner in .eng frontmatter
+status: active
+topic: architecture
+type: decision
+---
+
+# Store oneliner in .eng frontmatter
+
+## Context
+
+(Add context here)
+
+## Decision
+
+Store oneliner in .eng frontmatter
+
+## Rationale
+
+Enables rebuild command to reconstruct index without losing oneliners

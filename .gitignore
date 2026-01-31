@@ -1,0 +1,20 @@
+# Binary (root level only)
+/dory
+
+# Test artifacts
+*.test
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local dory store (optional - remove if you want to track project knowledge)
+# .dory/
