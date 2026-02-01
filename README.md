@@ -6,6 +6,21 @@ Dory captures what would otherwise disappear: learnings from experience you can'
 
 Dory stores structured knowledge in plain text files (YAML + Markdown) that are token-efficient (load only what's needed), human-editable, and git-friendly. This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
 
+### Quick start
+
+```bash
+dory init                        # Initialize in your project
+cat .dory/index.yaml             # Read state at session start
+
+# Record knowledge as you work
+dory learn "Timeout must be > 30s for large uploads" --topic api --severity high
+dory decide "Use Redis for session storage" --topic backend
+dory pattern "All handlers return {data, error}" --domain api
+
+# Update session state before ending
+dory status --goal "Add file uploads" --progress "Endpoint done" --next "Add size limits"
+```
+
 ### Why not just KNOWLEDGE.md?
 
 For small projects, a single markdown file works fine. Dory helps when knowledge grows:
@@ -16,27 +31,6 @@ For small projects, a single markdown file works fine. Dory helps when knowledge
 - **Linked**: items reference each other with refs/edges
 - **Session state**: goal, progress, next steps tracked automatically
 
-Here's a quick start:
-
-```bash
-# Initialize in your project
-dory init
-
-# Record a lesson
-dory learn "DHCP unreliable through firewall" --topic networking --severity high
-
-# Record a decision
-dory decide "Use static IPs for control plane" --topic networking --rationale "DHCP unreliable"
-
-# Record a pattern
-dory pattern "All infra VMs use static IPs" --domain networking
-
-# Update session state
-dory status --goal "Get cluster running" --progress "Control plane up" --next "Add workers"
-
-# Get context at session start
-cat .dory/index.yaml
-```
 
 ## How it works
 
@@ -150,6 +144,49 @@ You can also manually copy [DORY.md](DORY.md) to your project and include it in 
 To export knowledge into your agent instructions:
 ```bash
 dory export --append CLAUDE.md
+```
+
+## Use cases
+
+### Knowledge that compounds across sessions
+
+Session 1 - Building an API, things go wrong:
+
+```bash
+# Discovered a gotcha the hard way
+dory learn "Connection pool exhausts under load" --topic database --severity critical
+
+# Made an architecture decision based on that
+dory decide "Limit pool size to 20, add queue" --topic database --refs L001
+
+# End of session
+dory status --progress "Fixed connection issues" --next "Load test again"
+```
+
+Session 2 - New agent picks up where we left off:
+
+```bash
+cat .dory/index.yaml              # Read state and index
+dory recall database              # What do we know about database?
+dory list --type lesson --since 2026-01-20   # Recent lessons
+
+# Continue working... establish a pattern
+dory pattern "All DB calls use context timeout" --domain database --refs D001
+```
+
+The lesson informed a decision, which became a pattern. Future sessions won't repeat the debugging.
+
+### Reviewing recent activity
+
+```bash
+# What happened this week?
+dory list --since 2026-01-27
+
+# Critical lessons from the last month
+dory list --type lesson --severity critical --since 2026-01-01
+
+# Decisions made before a deadline
+dory list --type decision --until 2026-01-31
 ```
 
 ## License
