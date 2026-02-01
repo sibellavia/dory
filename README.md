@@ -1,4 +1,4 @@
-Dory is a _lightweight_ knowledge store that gives coding agents persistent memory across sessions.
+Dory is a knowledge store that gives coding agents persistent memory across sessions.
 
 Modern coding agents are capable! They read code, grep codebases, and build mental models on the fly. But they forget between sessions. Even with compact mode, knowledge gets summarized and lost over time.
 
