@@ -1,88 +1,180 @@
 # Dory - Agent Memory
 
-This project uses dory for persistent knowledge across sessions.
+This project uses `dory` for persistent knowledge across sessions.
 
 ## Session Start
 
-Read the index to load project knowledge and current state:
+At the beginning of every session, read the index:
 ```bash
 cat .dory/index.yaml
 ```
 
-## Recording Knowledge
+This gives you all lessons, decisions, patterns, and current session state.
 
-### Lessons (something you learned)
+## When to Record Knowledge
+
+**Record a lesson when:**
+- You discovered a bug or gotcha worth remembering
+- Something didn't work as expected
+- You found a fix that wasn't obvious
+
+**Record a decision when:**
+- You made an architectural or technical choice
+- You chose between alternatives
+- Future sessions need to know "why it's this way"
+
+**Record a pattern when:**
+- You established a convention
+- There's a "right way" to do something in this project
+
+## Examples
+
+### Lessons
 ```bash
-dory learn "<what you learned>" --topic <topic> --severity <critical|high|normal|low>
-```
+# Bug discovery
+dory learn "DHCP leases expire during long deployments" --topic networking --severity high
 
-### Decisions (architectural/technical choices)
-```bash
-dory decide "<decision>" --topic <topic> --rationale "<why>"
-```
+# Gotcha
+dory learn "Must escape quotes in YAML heredocs" --topic yaml --severity normal
 
-### Patterns (established conventions)
-```bash
-dory pattern "<pattern>" --domain <domain>
-```
+# With reference to related decision
+dory learn "Config reload requires service restart" --topic deployment --severity high --refs D003
 
-## Writing Detailed Content
-
-Use `--body` flag for full markdown:
-```bash
-dory learn "Title" --topic <topic> --severity <level> --body "# Full markdown content..."
-```
-
-Or pipe content:
-```bash
-cat <<'EOF' | dory learn "Title" --topic <topic> --body -
-# Detailed Lesson
+# Detailed lesson with body
+dory learn "Race condition in queue processor" --topic backend --severity critical --body "# Race Condition
 
 ## Symptom
-What you observed...
+Jobs processed twice under high load.
 
 ## Root Cause
-Why it happened...
+Worker threads not properly synchronized.
 
 ## Fix
-How to solve it...
-EOF
+Added mutex lock around dequeue operation."
 ```
 
-## Session End
-
-Update status before ending:
+### Decisions
 ```bash
+# Architecture choice
+dory decide "Use PostgreSQL over SQLite" --topic database
+
+# With rationale in body
+dory decide "Separate API and worker processes" --topic architecture --body "# Separate Processes
+
+## Context
+Single process was hitting memory limits.
+
+## Decision
+Split into API server and background worker.
+
+## Rationale
+- Independent scaling
+- Crash isolation
+- Clearer resource limits"
+
+# Referencing a lesson that led to this decision
+dory decide "Use static IPs for control plane" --topic networking --refs L001
+```
+
+### Patterns
+```bash
+# Convention
+dory pattern "All API endpoints return {data, error} envelope" --domain api
+
+# Pattern that implements a decision
+dory pattern "Use context.WithTimeout for all DB queries" --domain database --refs D005
+
+# With implementation details
+dory pattern "Database migrations use timestamped filenames" --domain database --body "# Migration Naming
+
+Format: YYYYMMDD_HHMMSS_description.sql
+
+Example: 20260201_143052_add_users_table.sql
+
+Run with: ./scripts/migrate.sh"
+```
+
+### Linking with Refs
+
+Use `--refs` to connect related knowledge. This creates edges in the index for quick traversal.
+
+```bash
+# Lesson learned from a decision
+dory learn "Connection pool exhaustion under load" --topic database --severity high --refs D005
+
+# Decision based on multiple lessons
+dory decide "Add circuit breaker for external APIs" --topic resilience --refs L003,L007
+
+# Pattern that implements multiple decisions
+dory pattern "Retry with exponential backoff" --domain api --refs D002,D008
+
+# Decision that supersedes another
+dory decide "Use Redis for caching instead of memcached" --topic caching --refs D004
+
+# Lesson referencing both a decision and a pattern
+dory learn "Must flush cache after schema migration" --topic database --severity critical --refs D012,P003
+```
+
+The index.yaml shows edges for quick lookup:
+```yaml
+edges:
+  L005:
+    - D005
+  D010:
+    - L003
+    - L007
+  P004:
+    - D002
+    - D008
+```
+
+### Session State
+```bash
+# Update progress
+dory status --goal "Implement user auth" --progress "Login endpoint done" --next "Add JWT validation"
+
+# Multiple next steps
 dory status \
-  --goal "<current goal>" \
-  --progress "<what's done>" \
-  --blocker "<current blocker, if any>" \
-  --next "<next step>"
+  --progress "Fixed database connection pooling" \
+  --next "Add connection timeout config" \
+  --next "Write tests for edge cases" \
+  --next "Update documentation"
+
+# Note a blocker
+dory status --blocker "Waiting for API credentials from client"
 ```
 
-## Retrieval Commands
+## Retrieval
 
-| Command | Purpose |
-|---------|---------|
-| `cat .dory/index.yaml` | Get index + state (session bootstrap) |
-| `dory recall <topic>` | Get all knowledge for a topic |
-| `dory show <id>` | Get full content for an item |
-| `dory list` | List all items |
-| `dory list --topic <t>` | Filter by topic |
-| `dory topics` | List topics with counts |
-
-## Export
-
-Export knowledge as markdown:
 ```bash
-dory export                      # Export all
-dory export --topic <topic>      # Export by topic
-dory export --append CLAUDE.md   # Append to file
+# Get full content of an item
+dory show D001
+
+# Get all knowledge for a topic
+dory recall networking
+
+# List all items
+dory list
+
+# Filter by type
+dory list --type lesson
+
+# Filter by topic
+dory list --topic database
 ```
 
-## Output Formats
+## Maintenance
 
-Add `--json` or `--yaml` for machine-readable output:
 ```bash
-dory list --json
+# Edit existing item
+dory edit D001
+
+# Remove item
+dory remove L003
+
+# Clear all knowledge (fresh start)
+dory reset
+
+# Rebuild index from files
+dory rebuild
 ```
