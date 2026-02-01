@@ -6,45 +6,62 @@ lessons:
         oneliner: Rebuild loses oneliners if not stored in frontmatter
         topic: architecture
         severity: high
-        created: 2026-01-31T21:49:52.87501+01:00
+        created: 2026-01-31T00:00:00Z
     L002:
         oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
         topic: git
         severity: normal
-        created: 2026-01-31T21:49:52.981773+01:00
+        created: 2026-01-31T00:00:00Z
 decisions:
     D001:
         oneliner: Use Cobra for CLI framework
         topic: architecture
-        created: 2026-01-31T21:49:45.987925+01:00
+        created: 2026-01-31T00:00:00Z
     D002:
         oneliner: Store oneliner in .eng frontmatter
         topic: architecture
-        created: 2026-01-31T21:49:46.081821+01:00
+        created: 2026-01-31T00:00:00Z
     D003:
         oneliner: YAML frontmatter + Markdown body for .eng files
         topic: file-format
-        created: 2026-01-31T21:49:46.194131+01:00
+        created: 2026-01-31T00:00:00Z
     D004:
         oneliner: Separate index.yaml from knowledge files
         topic: architecture
-        created: 2026-01-31T21:49:46.288691+01:00
+        created: 2026-01-31T00:00:00Z
     D005:
         oneliner: Name the tool Dory after Finding Nemo character
         topic: branding
-        created: 2026-01-31T21:49:46.479352+01:00
+        created: 2026-01-31T00:00:00Z
+    D006:
+        oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
+        topic: architecture
+        created: 2026-02-01T00:00:00Z
 patterns:
     P001:
         oneliner: All commands support --json and --yaml output flags
         domain: cli
-        created: 2026-01-31T21:49:55.464717+01:00
+        created: 2026-01-31T00:00:00Z
     P002:
         oneliner: Use --body flag or stdin for programmatic content input
         domain: cli
-        created: 2026-01-31T21:49:55.574983+01:00
+        created: 2026-01-31T00:00:00Z
 topics:
     - architecture
     - file-format
     - branding
     - git
     - cli
+state:
+    last_updated: 2026-02-01T17:49:10.806222+01:00
+    goal: Explore token-efficient formats and relation structures
+    progress: Merged state into index, removed BRIEF.md
+    next:
+        - Consider compact mode for agent consumption
+        - Add tests
+        - Add archive command to move stale knowledge out of active index
+        - Add search/filter by date range
+        - Add tags system for cross-cutting concerns
+        - Add import/export for sharing knowledge between projects
+        - Add brief customization (severity threshold and recency filter)
+        - Add validation command to check index integrity

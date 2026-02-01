@@ -4,7 +4,10 @@ This project uses dory for persistent knowledge across sessions.
 
 ## Session Start
 
-Run `dory brief` to load project knowledge and current state.
+Read the index to load project knowledge and current state:
+```bash
+cat .dory/index.yaml
+```
 
 ## Recording Knowledge
 
@@ -61,7 +64,7 @@ dory status \
 
 | Command | Purpose |
 |---------|---------|
-| `dory brief` | Get index + state (session bootstrap) |
+| `cat .dory/index.yaml` | Get index + state (session bootstrap) |
 | `dory recall <topic>` | Get all knowledge for a topic |
 | `dory show <id>` | Get full content for an item |
 | `dory list` | List all items |
@@ -72,6 +75,5 @@ dory status \
 
 Add `--json` or `--yaml` for machine-readable output:
 ```bash
-dory brief --yaml
 dory list --json
 ```

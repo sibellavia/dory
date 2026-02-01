@@ -11,24 +11,19 @@ import (
 
 	"github.com/simonebellavia/dory/internal/fileio"
 	"github.com/simonebellavia/dory/internal/models"
-	"gopkg.in/yaml.v3"
 )
 
 const (
 	DoryDir      = ".dory"
 	IndexFile    = "index.yaml"
-	StateFile    = "state.yaml"
 	KnowledgeDir = "knowledge"
-	BriefFile    = "BRIEF.md"
 )
 
 // Store manages the dory knowledge store
 type Store struct {
 	Root         string
 	IndexPath    string
-	StatePath    string
 	KnowledgeDir string
-	BriefPath    string
 }
 
 // New creates a new Store instance
@@ -39,9 +34,7 @@ func New(root string) *Store {
 	return &Store{
 		Root:         root,
 		IndexPath:    filepath.Join(root, IndexFile),
-		StatePath:    filepath.Join(root, StateFile),
 		KnowledgeDir: filepath.Join(root, KnowledgeDir),
-		BriefPath:    filepath.Join(root, BriefFile),
 	}
 }
 
@@ -64,21 +57,15 @@ func (s *Store) Init(project, description string) error {
 		return fmt.Errorf("failed to create knowledge directory: %w", err)
 	}
 
-	// Create index.yaml
+	// Create index.yaml with embedded state
 	index := models.NewIndex(project)
 	index.Description = description
+	index.State = models.NewState()
 	if err := fileio.WriteYAML(s.IndexPath, index); err != nil {
 		return fmt.Errorf("failed to create index: %w", err)
 	}
 
-	// Create state.yaml
-	state := models.NewState()
-	if err := fileio.WriteYAML(s.StatePath, state); err != nil {
-		return fmt.Errorf("failed to create state: %w", err)
-	}
-
-	// Generate initial BRIEF.md
-	return s.generateBrief()
+	return nil
 }
 
 // LoadIndex loads the index from disk
@@ -97,6 +84,9 @@ func (s *Store) LoadIndex() (*models.Index, error) {
 	if index.Patterns == nil {
 		index.Patterns = make(map[string]models.IndexEntry)
 	}
+	if index.Edges == nil {
+		index.Edges = make(map[string][]string)
+	}
 	return &index, nil
 }
 
@@ -105,22 +95,9 @@ func (s *Store) SaveIndex(index *models.Index) error {
 	return fileio.WriteYAML(s.IndexPath, index)
 }
 
-// LoadState loads the state from disk
-func (s *Store) LoadState() (*models.State, error) {
-	var state models.State
-	if err := fileio.ReadYAML(s.StatePath, &state); err != nil {
-		return nil, err
-	}
-	return &state, nil
-}
-
-// SaveState saves the state to disk
-func (s *Store) SaveState(state *models.State) error {
-	return fileio.WriteYAML(s.StatePath, state)
-}
 
 // Learn adds a new lesson
-func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary, body string) (string, error) {
+func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary, body string, refs []string) (string, error) {
 	id, err := fileio.NextID(s.KnowledgeDir, "L")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate ID: %w", err)
@@ -140,6 +117,9 @@ func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary,
 	if summary != "" {
 		frontmatter["summary"] = summary
 	}
+	if len(refs) > 0 {
+		frontmatter["refs"] = refs
+	}
 
 	engBody := body
 	if engBody == "" {
@@ -157,16 +137,18 @@ func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary,
 		return "", fmt.Errorf("failed to load index: %w", err)
 	}
 	index.AddLesson(id, oneliner, topic, severity, created)
+	for _, ref := range refs {
+		index.AddEdge(id, ref)
+	}
 	if err := s.SaveIndex(index); err != nil {
 		return "", fmt.Errorf("failed to save index: %w", err)
 	}
 
-	s.generateBrief()
 	return id, nil
 }
 
 // Decide adds a new decision
-func (s *Store) Decide(oneliner, topic, rationale, summary, body string) (string, error) {
+func (s *Store) Decide(oneliner, topic, rationale, summary, body string, refs []string) (string, error) {
 	id, err := fileio.NextID(s.KnowledgeDir, "D")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate ID: %w", err)
@@ -186,6 +168,9 @@ func (s *Store) Decide(oneliner, topic, rationale, summary, body string) (string
 	if summary != "" {
 		frontmatter["summary"] = summary
 	}
+	if len(refs) > 0 {
+		frontmatter["refs"] = refs
+	}
 
 	engBody := body
 	if engBody == "" {
@@ -203,16 +188,18 @@ func (s *Store) Decide(oneliner, topic, rationale, summary, body string) (string
 		return "", fmt.Errorf("failed to load index: %w", err)
 	}
 	index.AddDecision(id, oneliner, topic, created)
+	for _, ref := range refs {
+		index.AddEdge(id, ref)
+	}
 	if err := s.SaveIndex(index); err != nil {
 		return "", fmt.Errorf("failed to save index: %w", err)
 	}
 
-	s.generateBrief()
 	return id, nil
 }
 
 // Pattern adds a new pattern
-func (s *Store) Pattern(oneliner, domain, summary, body string) (string, error) {
+func (s *Store) Pattern(oneliner, domain, summary, body string, refs []string) (string, error) {
 	id, err := fileio.NextID(s.KnowledgeDir, "P")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate ID: %w", err)
@@ -231,6 +218,9 @@ func (s *Store) Pattern(oneliner, domain, summary, body string) (string, error) 
 	if summary != "" {
 		frontmatter["summary"] = summary
 	}
+	if len(refs) > 0 {
+		frontmatter["refs"] = refs
+	}
 
 	engBody := body
 	if engBody == "" {
@@ -248,61 +238,40 @@ func (s *Store) Pattern(oneliner, domain, summary, body string) (string, error) 
 		return "", fmt.Errorf("failed to load index: %w", err)
 	}
 	index.AddPattern(id, oneliner, domain, created)
+	for _, ref := range refs {
+		index.AddEdge(id, ref)
+	}
 	if err := s.SaveIndex(index); err != nil {
 		return "", fmt.Errorf("failed to save index: %w", err)
 	}
 
-	s.generateBrief()
 	return id, nil
 }
 
 // UpdateStatus updates the session state
 func (s *Store) UpdateStatus(goal, progress, blocker string, next, workingFiles, openQuestions []string) error {
-	state, err := s.LoadState()
+	index, err := s.LoadIndex()
 	if err != nil {
-		// Create new state if it doesn't exist
-		state = models.NewState()
+		return fmt.Errorf("failed to load index: %w", err)
 	}
 
-	state.Update(goal, progress, blocker, next)
+	if index.State == nil {
+		index.State = models.NewState()
+	}
+
+	index.State.Update(goal, progress, blocker, next)
 	if len(workingFiles) > 0 {
-		state.WorkingFiles = workingFiles
+		index.State.WorkingFiles = workingFiles
 	}
 	if len(openQuestions) > 0 {
-		state.OpenQuestions = openQuestions
+		index.State.OpenQuestions = openQuestions
 	}
 
-	if err := s.SaveState(state); err != nil {
-		return fmt.Errorf("failed to save state: %w", err)
+	if err := s.SaveIndex(index); err != nil {
+		return fmt.Errorf("failed to save index: %w", err)
 	}
 
-	s.generateBrief()
 	return nil
-}
-
-// Brief returns the index and state content for agent bootstrap
-func (s *Store) Brief() (string, error) {
-	var buf bytes.Buffer
-
-	// Read and output index
-	indexContent, err := fileio.ReadFileContent(s.IndexPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read index: %w", err)
-	}
-	buf.WriteString("# Index\n\n```yaml\n")
-	buf.WriteString(indexContent)
-	buf.WriteString("```\n\n")
-
-	// Read and output state
-	stateContent, err := fileio.ReadFileContent(s.StatePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read state: %w", err)
-	}
-	buf.WriteString("# State\n\n```yaml\n")
-	buf.WriteString(stateContent)
-	buf.WriteString("```\n")
-
-	return buf.String(), nil
 }
 
 // Recall returns all knowledge for a topic with summaries
@@ -541,7 +510,6 @@ func (s *Store) Remove(id string) error {
 		return fmt.Errorf("failed to remove file: %w", err)
 	}
 
-	s.generateBrief()
 	return nil
 }
 
@@ -552,17 +520,22 @@ func (s *Store) Rebuild() error {
 		return fmt.Errorf("failed to list knowledge files: %w", err)
 	}
 
-	// Load existing index to preserve project info
+	// Load existing index to preserve project info and state
 	index, err := s.LoadIndex()
 	if err != nil {
 		index = models.NewIndex("unknown")
 	}
+
+	// Preserve state
+	state := index.State
 
 	// Clear existing entries
 	index.Lessons = make(map[string]models.IndexEntry)
 	index.Decisions = make(map[string]models.IndexEntry)
 	index.Patterns = make(map[string]models.IndexEntry)
 	index.Topics = []string{}
+	index.Edges = make(map[string][]string)
+	index.State = state
 
 	for _, file := range files {
 		engFile, err := fileio.ParseEngFile(file)
@@ -589,28 +562,29 @@ func (s *Store) Rebuild() error {
 			domain, _ := engFile.Frontmatter["domain"].(string)
 			index.AddPattern(id, oneliner, domain, created)
 		}
+
+		// Extract refs and add edges
+		if refsRaw, ok := engFile.Frontmatter["refs"]; ok {
+			if refsList, ok := refsRaw.([]interface{}); ok {
+				for _, ref := range refsList {
+					if refID, ok := ref.(string); ok {
+						index.AddEdge(id, refID)
+					}
+				}
+			}
+		}
 	}
 
 	if err := s.SaveIndex(index); err != nil {
 		return fmt.Errorf("failed to save index: %w", err)
 	}
 
-	s.generateBrief()
 	return nil
 }
 
 // GetFilePath returns the path to an item's .eng file
 func (s *Store) GetFilePath(id string) string {
 	return filepath.Join(s.KnowledgeDir, id+".eng")
-}
-
-// generateBrief generates the BRIEF.md file
-func (s *Store) generateBrief() error {
-	brief, err := s.Brief()
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(s.BriefPath, []byte(brief), 0644)
 }
 
 // extractOneliner tries to extract a oneliner from the eng file
@@ -654,28 +628,3 @@ func parseCreated(v interface{}) time.Time {
 	return time.Now()
 }
 
-// GetBriefYAML returns the brief content in YAML format for agent consumption
-func (s *Store) GetBriefYAML() (string, error) {
-	index, err := s.LoadIndex()
-	if err != nil {
-		return "", err
-	}
-	state, err := s.LoadState()
-	if err != nil {
-		return "", err
-	}
-
-	brief := struct {
-		Index *models.Index `yaml:"index"`
-		State *models.State `yaml:"state"`
-	}{
-		Index: index,
-		State: state,
-	}
-
-	data, err := yaml.Marshal(brief)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}

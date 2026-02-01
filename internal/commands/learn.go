@@ -35,6 +35,7 @@ Use --body - to read markdown content from stdin:
 		severity := models.Severity(severityStr)
 		bodyFlag, _ := cmd.Flags().GetString("body")
 		summaryFlag, _ := cmd.Flags().GetString("summary")
+		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if topic == "" {
 			fmt.Fprintln(os.Stderr, "Error: --topic is required")
@@ -73,7 +74,7 @@ Use --body - to read markdown content from stdin:
 			oneliner, summary, body = parseEditorContent(content)
 		}
 
-		id, err := s.Learn(oneliner, topic, severity, summary, body)
+		id, err := s.Learn(oneliner, topic, severity, summary, body, refs)
 		CheckError(err)
 
 		result := map[string]string{
@@ -95,6 +96,7 @@ func init() {
 	learnCmd.Flags().StringP("severity", "s", "normal", "Severity level: critical, high, normal, low")
 	learnCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
 	learnCmd.Flags().String("summary", "", "Short summary for the lesson")
+	learnCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
 	RootCmd.AddCommand(learnCmd)
 }
 

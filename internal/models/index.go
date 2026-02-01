@@ -20,6 +20,8 @@ type Index struct {
 	Decisions   map[string]IndexEntry `yaml:"decisions,omitempty"`
 	Patterns    map[string]IndexEntry `yaml:"patterns,omitempty"`
 	Topics      []string              `yaml:"topics,omitempty"`
+	Edges       map[string][]string   `yaml:"edges,omitempty"` // source_id -> [target_ids]
+	State       *State                `yaml:"state,omitempty"`
 }
 
 // NewIndex creates a new empty index
@@ -67,22 +69,47 @@ func (idx *Index) AddPattern(id, oneliner, domain string, created time.Time) {
 
 // RemoveItem removes an item from the index by ID
 func (idx *Index) RemoveItem(id string) bool {
+	removed := false
 	if _, ok := idx.Lessons[id]; ok {
 		delete(idx.Lessons, id)
-		idx.rebuildTopics()
-		return true
+		removed = true
 	}
 	if _, ok := idx.Decisions[id]; ok {
 		delete(idx.Decisions, id)
-		idx.rebuildTopics()
-		return true
+		removed = true
 	}
 	if _, ok := idx.Patterns[id]; ok {
 		delete(idx.Patterns, id)
-		idx.rebuildTopics()
-		return true
+		removed = true
 	}
-	return false
+	if removed {
+		idx.rebuildTopics()
+		idx.removeEdges(id)
+	}
+	return removed
+}
+
+// removeEdges removes all edges from and to the given item
+func (idx *Index) removeEdges(id string) {
+	if idx.Edges == nil {
+		return
+	}
+	// Remove edges from this item
+	delete(idx.Edges, id)
+	// Remove edges to this item
+	for from, targets := range idx.Edges {
+		filtered := make([]string, 0, len(targets))
+		for _, target := range targets {
+			if target != id {
+				filtered = append(filtered, target)
+			}
+		}
+		if len(filtered) == 0 {
+			delete(idx.Edges, from)
+		} else {
+			idx.Edges[from] = filtered
+		}
+	}
 }
 
 // addTopic adds a topic if it doesn't exist
@@ -120,6 +147,14 @@ func (idx *Index) rebuildTopics() {
 	for topic := range topicSet {
 		idx.Topics = append(idx.Topics, topic)
 	}
+}
+
+// AddEdge adds an edge from one item to another
+func (idx *Index) AddEdge(from, to string) {
+	if idx.Edges == nil {
+		idx.Edges = make(map[string][]string)
+	}
+	idx.Edges[from] = append(idx.Edges[from], to)
 }
 
 // GetTopicCounts returns a map of topic -> count of items

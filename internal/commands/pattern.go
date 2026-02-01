@@ -30,6 +30,7 @@ Use --body - to read markdown content from stdin:
 		domain, _ := cmd.Flags().GetString("domain")
 		bodyFlag, _ := cmd.Flags().GetString("body")
 		summaryFlag, _ := cmd.Flags().GetString("summary")
+		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if domain == "" {
 			fmt.Fprintln(os.Stderr, "Error: --domain is required")
@@ -68,7 +69,7 @@ Use --body - to read markdown content from stdin:
 			oneliner, summary, body = parseEditorContent(content)
 		}
 
-		id, err := s.Pattern(oneliner, domain, summary, body)
+		id, err := s.Pattern(oneliner, domain, summary, body, refs)
 		CheckError(err)
 
 		result := map[string]string{
@@ -88,5 +89,6 @@ func init() {
 	patternCmd.Flags().StringP("domain", "d", "", "Domain for the pattern (required)")
 	patternCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
 	patternCmd.Flags().String("summary", "", "Short summary for the pattern")
+	patternCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
 	RootCmd.AddCommand(patternCmd)
 }

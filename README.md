@@ -30,7 +30,7 @@ dory pattern "All infra VMs use static IPs" --domain networking
 dory status --goal "Get cluster running" --progress "Control plane up" --next "Add workers"
 
 # Get context at session start
-dory brief
+cat .dory/index.yaml
 ```
 
 ## How it works
@@ -39,13 +39,11 @@ Dory creates a `.dory/` directory in your project that stores everything as plai
 
 ```
 .dory/
-├── index.yaml       # Lightweight index (always loaded)
-├── state.yaml       # Current session state
-├── knowledge/       # Full content files
-│   ├── L001.eng     # Lessons
-│   ├── D001.eng     # Decisions
-│   └── P001.eng     # Patterns
-└── BRIEF.md         # Auto-generated summary
+├── index.yaml       # Index + session state (always loaded)
+└── knowledge/       # Full content files
+    ├── L001.eng     # Lessons
+    ├── D001.eng     # Decisions
+    └── P001.eng     # Patterns
 ```
 
 Knowledge is organized into three types, each serving a distinct purpose. **Lessons** capture things you learned the hard way (bugs, gotchas, and fixes worth remembering). **Decisions** record architectural and technical choices along with their rationale, so future sessions understand why things are the way they are. **Patterns** document established conventions and "how we do things here."
@@ -88,7 +86,7 @@ Same flags work for `decide` and `pattern`.
 ### Retrieving Knowledge
 
 ```bash
-dory brief              # Index + state (for session start)
+cat .dory/index.yaml    # Index + state (for session start)
 dory recall <topic>     # All knowledge for a topic
 dory show <id>          # Full content for an item
 dory list               # List all items

@@ -11,7 +11,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize dory in current project",
-	Long:  `Creates the .dory directory structure with index.yaml and state.yaml.`,
+	Long:  `Creates the .dory directory structure with index.yaml.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		project, _ := cmd.Flags().GetString("project")
 		description, _ := cmd.Flags().GetString("description")
