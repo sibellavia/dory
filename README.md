@@ -6,7 +6,7 @@ Dory captures what would otherwise disappear: learnings from experience you can'
 
 Dory stores structured knowledge in plain text files (YAML + Markdown) that are token-efficient (load only what's needed), human-editable, and git-friendly. This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
 
-### Quick start
+## Quick start
 
 ```bash
 dory init                        # Initialize in your project
@@ -21,7 +21,7 @@ dory pattern "All handlers return {data, error}" --domain api
 dory status --goal "Add file uploads" --progress "Endpoint done" --next "Add size limits"
 ```
 
-### Why not just KNOWLEDGE.md?
+## Why not just KNOWLEDGE.md?
 
 For small projects, a single markdown file works fine. Dory helps when knowledge grows:
 
