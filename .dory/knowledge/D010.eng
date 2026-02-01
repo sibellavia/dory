@@ -1,0 +1,19 @@
+---
+created: "2026-02-01T19:00:49+01:00"
+id: D010
+oneliner: Remove status field from decisions
+topic: architecture
+type: decision
+---
+
+# Remove status field
+
+## Decision
+
+Remove the `status: active` field from decision frontmatter.
+
+## Rationale
+
+- Agents rarely update it
+- Over-engineering for current use case
+- Can be added back later if needed

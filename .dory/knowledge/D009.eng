@@ -1,0 +1,19 @@
+---
+created: "2026-02-01T19:00:31+01:00"
+id: D009
+oneliner: Full RFC3339 timestamps in .eng files
+topic: architecture
+type: decision
+---
+
+# Full timestamps
+
+## Decision
+
+Store created field as RFC3339 format (e.g., 2026-02-01T18:58:21+01:00) instead of date-only.
+
+## Rationale
+
+- Enables future temporal relations
+- More precision for sorting and filtering
+- Backward compatible - parser handles both formats

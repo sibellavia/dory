@@ -37,6 +37,22 @@ decisions:
         oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
         topic: architecture
         created: 2026-02-01T00:00:00Z
+    D007:
+        oneliner: Single index.yaml as source of truth
+        topic: architecture
+        created: 2026-02-01T18:51:35.992891+01:00
+    D008:
+        oneliner: Auto-append dory instructions on init
+        topic: integration
+        created: 2026-02-01T18:52:16.142234+01:00
+    D009:
+        oneliner: Full RFC3339 timestamps in .eng files
+        topic: architecture
+        created: 2026-02-01T19:00:31.628574+01:00
+    D010:
+        oneliner: Remove status field from decisions
+        topic: architecture
+        created: 2026-02-01T19:00:49.114491+01:00
 patterns:
     P001:
         oneliner: All commands support --json and --yaml output flags
@@ -46,22 +62,29 @@ patterns:
         oneliner: Use --body flag or stdin for programmatic content input
         domain: cli
         created: 2026-01-31T00:00:00Z
+    P003:
+        oneliner: Editor mode for humans, --body flag for agents
+        domain: cli
+        created: 2026-02-01T18:52:01.000577+01:00
 topics:
+    - integration
+    - cli
     - architecture
+    - git
     - file-format
     - branding
-    - git
-    - cli
+edges:
+    D007:
+        - D004
+    P003:
+        - P002
 state:
-    last_updated: 2026-02-01T17:49:10.806222+01:00
+    last_updated: 2026-02-01T18:52:32.008225+01:00
     goal: Explore token-efficient formats and relation structures
-    progress: Merged state into index, removed BRIEF.md
+    progress: Added refs/edges (D006), merged state into index (D007), added export command, auto-append on init (D008)
     next:
-        - Consider compact mode for agent consumption
         - Add tests
+        - Consider compact mode for agent consumption
         - Add archive command to move stale knowledge out of active index
         - Add search/filter by date range
-        - Add tags system for cross-cutting concerns
-        - Add import/export for sharing knowledge between projects
-        - Add brief customization (severity threshold and recency filter)
         - Add validation command to check index integrity

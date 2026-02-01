@@ -112,7 +112,7 @@ func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary,
 		"oneliner": oneliner,
 		"topic":    topic,
 		"severity": string(severity),
-		"created":  created.Format("2006-01-02"),
+		"created":  created.Format(time.RFC3339),
 	}
 	if summary != "" {
 		frontmatter["summary"] = summary
@@ -162,8 +162,7 @@ func (s *Store) Decide(oneliner, topic, rationale, summary, body string, refs []
 		"type":     "decision",
 		"oneliner": oneliner,
 		"topic":    topic,
-		"created":  created.Format("2006-01-02"),
-		"status":   "active",
+		"created":  created.Format(time.RFC3339),
 	}
 	if summary != "" {
 		frontmatter["summary"] = summary
@@ -213,7 +212,7 @@ func (s *Store) Pattern(oneliner, domain, summary, body string, refs []string) (
 		"type":     "pattern",
 		"oneliner": oneliner,
 		"domain":   domain,
-		"created":  created.Format("2006-01-02"),
+		"created":  created.Format(time.RFC3339),
 	}
 	if summary != "" {
 		frontmatter["summary"] = summary
@@ -618,8 +617,12 @@ func extractOneliner(eng *fileio.EngFile) string {
 func parseCreated(v interface{}) time.Time {
 	switch val := v.(type) {
 	case string:
-		t, err := time.Parse("2006-01-02", val)
-		if err == nil {
+		// Try RFC3339 first (new format with time)
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			return t
+		}
+		// Fall back to date-only format (legacy)
+		if t, err := time.Parse("2006-01-02", val); err == nil {
 			return t
 		}
 	case time.Time:

@@ -51,8 +51,10 @@ Knowledge is organized into three types, each serving a distinct purpose. **Less
 | Type | Prefix | Purpose | Key Fields |
 |------|--------|---------|------------|
 | Lesson | L | Something learned (bugs, gotchas) | topic, severity |
-| Decision | D | Architectural/technical choices | topic, rationale |
+| Decision | D | Architectural/technical choices | topic |
 | Pattern | P | Established conventions | domain |
+
+All types support `refs` to link related items (e.g., `--refs D001,L002`). These create edges in the index for quick traversal.
 
 Lessons support severity levels to help agents prioritize what matters. Critical lessons are things that will break if ignored. High severity saves significant debugging time. Normal is good general knowledge, and low covers edge cases.
 
@@ -73,6 +75,9 @@ dory learn "Brief description" --topic <topic> --severity <level>
 
 # Lesson with full content
 dory learn "Title" --topic <topic> --body "# Full markdown content..."
+
+# With references to related items
+dory learn "Title" --topic <topic> --refs D001,L002
 
 # From stdin
 cat content.md | dory learn "Title" --topic <topic> --body -
@@ -106,12 +111,23 @@ dory status \
   --next "Next step 2"
 ```
 
+### Export
+
+```bash
+dory export                      # Export all as markdown
+dory export --topic architecture # Export by topic
+dory export D001 D002            # Export specific items
+dory export --append CLAUDE.md   # Append to file
+```
+
 ### Maintenance
 
 ```bash
 dory edit <id>     # Edit in $EDITOR
 dory remove <id>   # Delete (with confirmation)
 dory rebuild       # Rebuild index from files
+dory reset         # Clear all knowledge (keep config)
+dory reset --full  # Full reset (reinitialize)
 ```
 
 ### Output Formats
@@ -120,7 +136,14 @@ All commands support `--json` and `--yaml` flags for machine-readable output.
 
 ## Agent Integration
 
-Copy [DORY.md](DORY.md) to your project and include it in your agent's context (e.g., reference it in AGENTS.md/CLAUDE.md or the main file you usually give to your coding agent).
+When you run `dory init`, it automatically appends instructions to `CLAUDE.md` and/or `AGENTS.md` if they exist in your project.
+
+You can also manually copy [DORY.md](DORY.md) to your project and include it in your agent's context.
+
+To export knowledge into your agent instructions:
+```bash
+dory export --append CLAUDE.md
+```
 
 ## License
 

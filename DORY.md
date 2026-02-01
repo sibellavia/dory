@@ -71,6 +71,15 @@ dory status \
 | `dory list --topic <t>` | Filter by topic |
 | `dory topics` | List topics with counts |
 
+## Export
+
+Export knowledge as markdown:
+```bash
+dory export                      # Export all
+dory export --topic <topic>      # Export by topic
+dory export --append CLAUDE.md   # Append to file
+```
+
 ## Output Formats
 
 Add `--json` or `--yaml` for machine-readable output:

@@ -1,0 +1,29 @@
+---
+created: "2026-02-01"
+id: D007
+oneliner: Single index.yaml as source of truth
+refs:
+  - D004
+status: active
+topic: architecture
+type: decision
+---
+
+# Single index.yaml as source of truth
+
+## Context
+
+Previously had separate files: index.yaml, state.yaml, and BRIEF.md (auto-generated).
+This caused duplication and sync issues - editing state.yaml required rebuilding BRIEF.md.
+
+## Decision
+
+Merge state into index.yaml. Remove state.yaml and BRIEF.md entirely.
+Agents read `cat .dory/index.yaml` directly.
+
+## Rationale
+
+- Single source of truth
+- No regeneration issues
+- Simpler mental model
+- Better DX - edits just work
