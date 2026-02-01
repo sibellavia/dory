@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/simonebellavia/dory/internal/store"
 	"github.com/spf13/cobra"
@@ -22,7 +23,7 @@ var recallCmd = &cobra.Command{
 		format := GetOutputFormat(cmd)
 
 		if format == "json" || format == "yaml" {
-			items, err := s.List(topic, "", "")
+			items, err := s.List(topic, "", "", time.Time{}, time.Time{})
 			CheckError(err)
 
 			result := map[string]interface{}{

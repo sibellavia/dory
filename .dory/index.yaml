@@ -79,12 +79,11 @@ edges:
     P003:
         - P002
 state:
-    last_updated: 2026-02-01T18:52:32.008225+01:00
+    last_updated: 2026-02-01T19:25:29.514498+01:00
     goal: Explore token-efficient formats and relation structures
-    progress: Added refs/edges (D006), merged state into index (D007), added export command, auto-append on init (D008)
+    progress: Added reset command, full timestamps (D009), removed status field (D010), improved DORY.md
     next:
         - Add tests
-        - Consider compact mode for agent consumption
         - Add archive command to move stale knowledge out of active index
         - Add search/filter by date range
         - Add validation command to check index integrity

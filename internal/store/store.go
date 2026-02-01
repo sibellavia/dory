@@ -384,7 +384,7 @@ type ListItem struct {
 }
 
 // List returns items matching the filters
-func (s *Store) List(topic, itemType string, severity models.Severity) ([]ListItem, error) {
+func (s *Store) List(topic, itemType string, severity models.Severity, since, until time.Time) ([]ListItem, error) {
 	index, err := s.LoadIndex()
 	if err != nil {
 		return nil, err
@@ -399,6 +399,12 @@ func (s *Store) List(topic, itemType string, severity models.Severity) ([]ListIt
 				continue
 			}
 			if severity != "" && entry.Severity != severity {
+				continue
+			}
+			if !since.IsZero() && entry.Created.Before(since) {
+				continue
+			}
+			if !until.IsZero() && entry.Created.After(until) {
 				continue
 			}
 			items = append(items, ListItem{
@@ -421,6 +427,12 @@ func (s *Store) List(topic, itemType string, severity models.Severity) ([]ListIt
 			if severity != "" {
 				continue // decisions don't have severity
 			}
+			if !since.IsZero() && entry.Created.Before(since) {
+				continue
+			}
+			if !until.IsZero() && entry.Created.After(until) {
+				continue
+			}
 			items = append(items, ListItem{
 				ID:       id,
 				Type:     "decision",
@@ -439,6 +451,12 @@ func (s *Store) List(topic, itemType string, severity models.Severity) ([]ListIt
 			}
 			if severity != "" {
 				continue // patterns don't have severity
+			}
+			if !since.IsZero() && entry.Created.Before(since) {
+				continue
+			}
+			if !until.IsZero() && entry.Created.After(until) {
+				continue
 			}
 			items = append(items, ListItem{
 				ID:       id,

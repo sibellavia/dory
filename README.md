@@ -1,15 +1,20 @@
 Dory is a _lightweight_ knowledge store that gives coding agents persistent memory across sessions.
 
-Coding agents (Claude Code, Codex, etc.) lose context between sessions. When a new session starts, the agent doesn't remember:
+Modern coding agents are capable! They read code, grep codebases, and build mental models on the fly. But they forget between sessions. Even with compact mode, knowledge gets summarized and lost over time.
 
-- Lessons learned: bugs fixed, gotchas discovered
-- Decisions made: why the architecture is the way it is
-- Patterns established: conventions, or _how we do things here_
-- Session state: where we left off, what's next
+Dory captures what would otherwise disappear: learnings from experience you can't grep for, the rationale behind decisions that isn't in the code, project-specific gotchas learned through several sessions and hours, and session state so the next agent knows where you left off.
 
-Dory stores structured knowledge in plain text files (YAML + Markdown) that are token-efficient (load only what's needed), human-editable, and git-friendly.
+Dory stores structured knowledge in plain text files (YAML + Markdown) that are token-efficient (load only what's needed), human-editable, and git-friendly. This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
 
-This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
+### Why not just KNOWLEDGE.md?
+
+For small projects, a single markdown file works fine. Dory helps when knowledge grows:
+
+- **Queryable**: `dory recall auth` instead of scrolling through one big file
+- **Incremental**: load the index, fetch full content only when needed
+- **Structured**: categorized by type, topic, severity
+- **Linked**: items reference each other with refs/edges
+- **Session state**: goal, progress, next steps tracked automatically
 
 Here's a quick start:
 
@@ -97,6 +102,8 @@ dory show <id>          # Full content for an item
 dory list               # List all items
 dory list --topic net   # Filter by topic
 dory list --type lesson # Filter by type
+dory list --since 2026-01-25  # Items from date onward
+dory list --since 2026-01-01 --until 2026-01-31  # Date range
 dory topics             # List topics with counts
 ```
 

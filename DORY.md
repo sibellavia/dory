@@ -163,6 +163,33 @@ dory list --type lesson
 dory list --topic database
 ```
 
+### Date Range Filtering
+
+Filter items by creation date using `--since` and `--until` flags:
+
+```bash
+# Items created on or after a date
+dory list --since 2026-01-25
+
+# Items created on or before a date
+dory list --until 2026-01-31
+
+# Items within a date range
+dory list --since 2026-01-01 --until 2026-01-31
+
+# Combine with other filters
+dory list --topic database --since 2026-01-15
+dory list --type lesson --severity high --since 2026-01-01
+
+# Review recent decisions
+dory list --type decision --since 2026-01-20
+
+# Find lessons from last week
+dory list --type lesson --since 2026-01-25 --until 2026-02-01
+```
+
+Date format is `YYYY-MM-DD`. Both flags are optional and can be combined with `--topic`, `--type`, and `--severity` filters.
+
 ## Maintenance
 
 ```bash
