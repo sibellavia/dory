@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/simonebellavia/dory/internal/fileio"
-	"github.com/simonebellavia/dory/internal/store"
+	"github.com/sibellavia/dory/internal/fileio"
+	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
 )
 

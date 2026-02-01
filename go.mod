@@ -1,4 +1,4 @@
-module github.com/simonebellavia/dory
+module github.com/sibellavia/dory
 
 go 1.25.4
 

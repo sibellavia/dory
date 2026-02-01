@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/simonebellavia/dory/internal/store"
-	"github.com/simonebellavia/dory/templates"
+	"github.com/sibellavia/dory/internal/store"
+	"github.com/sibellavia/dory/templates"
 	"github.com/spf13/cobra"
 )
 

@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/simonebellavia/dory/internal/fileio"
-	"github.com/simonebellavia/dory/internal/models"
-	"github.com/simonebellavia/dory/internal/store"
-	"github.com/simonebellavia/dory/templates"
+	"github.com/sibellavia/dory/internal/fileio"
+	"github.com/sibellavia/dory/internal/models"
+	"github.com/sibellavia/dory/internal/store"
+	"github.com/sibellavia/dory/templates"
 	"github.com/spf13/cobra"
 )
 

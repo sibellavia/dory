@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/simonebellavia/dory/internal/fileio"
-	"github.com/simonebellavia/dory/internal/models"
+	"github.com/sibellavia/dory/internal/fileio"
+	"github.com/sibellavia/dory/internal/models"
 )
 
 const (
@@ -94,7 +94,6 @@ func (s *Store) LoadIndex() (*models.Index, error) {
 func (s *Store) SaveIndex(index *models.Index) error {
 	return fileio.WriteYAML(s.IndexPath, index)
 }
-
 
 // Learn adds a new lesson
 func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary, body string, refs []string) (string, error) {
@@ -374,13 +373,13 @@ func (s *Store) Show(id string) (string, error) {
 
 // ListItem represents an item in the list output
 type ListItem struct {
-	ID       string           `json:"id" yaml:"id"`
-	Type     string           `json:"type" yaml:"type"`
-	Oneliner string           `json:"oneliner" yaml:"oneliner"`
-	Topic    string           `json:"topic,omitempty" yaml:"topic,omitempty"`
-	Domain   string           `json:"domain,omitempty" yaml:"domain,omitempty"`
-	Severity models.Severity  `json:"severity,omitempty" yaml:"severity,omitempty"`
-	Created  string           `json:"created" yaml:"created"`
+	ID       string          `json:"id" yaml:"id"`
+	Type     string          `json:"type" yaml:"type"`
+	Oneliner string          `json:"oneliner" yaml:"oneliner"`
+	Topic    string          `json:"topic,omitempty" yaml:"topic,omitempty"`
+	Domain   string          `json:"domain,omitempty" yaml:"domain,omitempty"`
+	Severity models.Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	Created  string          `json:"created" yaml:"created"`
 }
 
 // List returns items matching the filters
@@ -648,4 +647,3 @@ func parseCreated(v interface{}) time.Time {
 	}
 	return time.Now()
 }
-

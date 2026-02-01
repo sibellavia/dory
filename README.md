@@ -6,6 +6,14 @@ Dory captures what would otherwise disappear: learnings from experience you can'
 
 Dory stores structured knowledge in plain text files (YAML + Markdown) that are token-efficient (load only what's needed), human-editable, and git-friendly. This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
 
+## Install
+
+```bash
+go install github.com/sibellavia/dory/cmd/dory@latest
+```
+
+Or download a binary from [releases](https://github.com/sibellavia/dory/releases).
+
 ## Quick start
 
 ```bash
