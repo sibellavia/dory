@@ -190,6 +190,64 @@ dory list --type lesson --since 2026-01-25 --until 2026-02-01
 
 Date format is `YYYY-MM-DD`. Both flags are optional and can be combined with `--topic`, `--type`, and `--severity` filters.
 
+## Importing Existing Knowledge
+
+Migrate existing markdown files into dory:
+
+```bash
+# Import a single file
+dory import docs/api-gotchas.md --type lesson --topic api
+
+# Import with severity
+dory import critical-bugs.md --type lesson --topic backend --severity critical
+```
+
+### Frontmatter Support
+
+If the markdown has YAML frontmatter, dory extracts metadata automatically:
+
+```markdown
+---
+type: decision
+topic: caching
+severity: high
+---
+# Use Redis for session storage
+
+We need fast session lookups...
+```
+
+```bash
+dory import decisions/redis.md  # type and topic from frontmatter
+```
+
+CLI flags override frontmatter values.
+
+### Splitting Numbered Lists
+
+Import a file with numbered items as separate entries:
+
+```markdown
+# Lessons Learned
+
+1) SSH access failed until correct key used
+- Symptom: SSH denied even after adding a key.
+- Fix: Use the correct key file.
+
+2) Config reload requires restart
+- Symptom: Changes not applied.
+- Fix: Restart the service after config changes.
+```
+
+```bash
+dory import lessons.md --type lesson --topic infra --split
+# Imported L001: SSH access failed until correct key used
+# Imported L002: Config reload requires restart
+# Imported 2 items
+```
+
+Patterns recognized: `1) Title`, `1. Title`, `2) Title`, etc.
+
 ## Maintenance
 
 ```bash

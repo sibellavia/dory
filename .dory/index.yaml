@@ -67,12 +67,12 @@ patterns:
         domain: cli
         created: 2026-02-01T18:52:01.000577+01:00
 topics:
-    - integration
-    - cli
     - architecture
     - git
     - file-format
+    - integration
     - branding
+    - cli
 edges:
     D007:
         - D004

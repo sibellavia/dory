@@ -120,6 +120,14 @@ dory status \
   --next "Next step 2"
 ```
 
+### Import
+
+```bash
+dory import doc.md --type lesson --topic api        # Import markdown file
+dory import doc.md                                   # Use frontmatter metadata
+dory import lessons.md --type lesson --topic infra --split  # Split numbered items
+```
+
 ### Export
 
 ```bash
@@ -195,6 +203,19 @@ dory list --type lesson --severity critical --since 2026-01-01
 
 # Decisions made before a deadline
 dory list --type decision --until 2026-01-31
+```
+
+### Migrating existing knowledge
+
+```bash
+# Import a markdown file
+dory import docs/lessons.md --type lesson --topic api
+
+# File with frontmatter (type/topic extracted automatically)
+dory import decisions/auth.md
+
+# Split a file with numbered items into separate entries
+dory import LESSONS_LEARNED.md --type lesson --topic infra --split
 ```
 
 ## License
