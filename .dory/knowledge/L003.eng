@@ -1,0 +1,32 @@
+---
+created: "2026-02-01T22:02:21+01:00"
+id: L003
+oneliner: Document store for AI agents - explore single-file, text-based, queryable format
+severity: critical
+topic: architecture
+type: lesson
+---
+
+# Document Store for AI Agents
+
+## Problem
+Current file-per-item approach doesn't scale. Need a format that is:
+- Single file (or few files)
+- Text-based, human/agent readable
+- Queryable with index support
+- Git-friendly
+
+## Candidates
+- YAML stream (--- separators)
+- JSONL with index header
+- Custom DSL optimized for agents
+- Org-mode / outline style
+
+## Requirements
+- Agents can cat/read directly
+- Supports fast lookup by ID
+- Greppable content
+- Append-friendly for git diffs
+
+## Priority
+High - could be the core innovation of Dory.
