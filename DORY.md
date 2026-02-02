@@ -20,6 +20,15 @@ cat .dory/index.yaml
 
 This gives you project info, current state, and session context.
 
+## Session End
+
+Before ending a session, update the state so the next session knows where you left off:
+```bash
+dory status --goal "Current goal" --progress "What's done" --next "Next step"
+```
+
+This is important for session continuity. The next agent will see this state when they run `cat .dory/index.yaml`.
+
 ## Command Help
 
 Every command is self-documenting:
@@ -128,6 +137,9 @@ dory pattern "Retry with exponential backoff" --domain api --refs D002,D008
 ```
 
 ### Session State
+
+Update state before ending your session so the next agent knows where you left off:
+
 ```bash
 # Update progress
 dory status --goal "Implement user auth" --progress "Login endpoint done" --next "Add JWT validation"
