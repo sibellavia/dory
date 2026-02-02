@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,15 @@ const (
 	KnowledgeFile = "knowledge.dory"
 	IndexFile     = "index.yaml"
 )
+
+// isDelimiterLine returns true only for an exact delimiter line.
+// It intentionally does not trim spaces so indented body lines like "    ==="
+// are not treated as record boundaries.
+func isDelimiterLine(line string) bool {
+	line = strings.TrimSuffix(line, "\n")
+	line = strings.TrimSuffix(line, "\r")
+	return line == ItemDelim
+}
 
 // Entry represents a single knowledge item
 type Entry struct {
@@ -106,9 +116,10 @@ type State struct {
 
 // Index holds project metadata and state (no offsets!)
 type Index struct {
-	Project string   `yaml:"project"`
-	State   *State   `yaml:"state,omitempty"`
-	Deleted []string `yaml:"deleted,omitempty"` // IDs of deleted entries (until compact)
+	Project     string   `yaml:"project"`
+	Description string   `yaml:"description,omitempty"`
+	State       *State   `yaml:"state,omitempty"`
+	Deleted     []string `yaml:"deleted,omitempty"` // IDs of deleted entries (until compact)
 }
 
 // MemoryEntry holds offset and metadata for fast lookup (in-memory only)
@@ -136,7 +147,7 @@ type DoryFile struct {
 }
 
 // Create creates a new dory storage
-func Create(dir, project string) (*DoryFile, error) {
+func Create(dir, project, description string) (*DoryFile, error) {
 	knowledgePath := filepath.Join(dir, KnowledgeFile)
 	indexPath := filepath.Join(dir, IndexFile)
 
@@ -156,8 +167,9 @@ func Create(dir, project string) (*DoryFile, error) {
 		IndexPath:     indexPath,
 		knowledge:     f,
 		Index: &Index{
-			Project: project,
-			State:   &State{},
+			Project:     project,
+			Description: description,
+			State:       &State{},
 		},
 		entries: make(map[string]*MemoryEntry),
 	}
@@ -207,7 +219,9 @@ func Open(dir string) (*DoryFile, error) {
 
 // scan reads the knowledge file and builds the in-memory index
 func (df *DoryFile) scan() error {
-	df.knowledge.Seek(0, 0)
+	if _, err := df.knowledge.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to seek knowledge file: %w", err)
+	}
 	reader := bufio.NewReader(df.knowledge)
 
 	// Verify magic header
@@ -232,7 +246,7 @@ func (df *DoryFile) scan() error {
 			return err
 		}
 
-		if strings.TrimSpace(line) != ItemDelim {
+		if !isDelimiterLine(line) {
 			pos += int64(len(line))
 			continue
 		}
@@ -253,10 +267,12 @@ func (df *DoryFile) scan() error {
 			if err != nil {
 				return err
 			}
-			if strings.TrimSpace(line) == ItemDelim {
+			if isDelimiterLine(line) {
 				// Seek back to read the delimiter again in the outer loop
 				seekPos := pos // Don't increment pos, just seek to current position
-				df.knowledge.Seek(seekPos, 0)
+				if _, err := df.knowledge.Seek(seekPos, 0); err != nil {
+					return fmt.Errorf("failed to seek delimiter position: %w", err)
+				}
 				reader = bufio.NewReader(df.knowledge)
 				break
 			}
@@ -399,7 +415,7 @@ func (df *DoryFile) Get(id string) (*Entry, error) {
 		if err != nil {
 			return nil, err
 		}
-		if strings.TrimSpace(line) == ItemDelim {
+		if isDelimiterLine(line) {
 			break
 		}
 		content.WriteString(line)
@@ -421,6 +437,11 @@ func (df *DoryFile) Delete(id string) error {
 	delete(df.entries, id)
 
 	// Persist deletion in index
+	for _, delID := range df.Index.Deleted {
+		if delID == id {
+			return df.saveIndex()
+		}
+	}
 	df.Index.Deleted = append(df.Index.Deleted, id)
 	return df.saveIndex()
 }
@@ -435,7 +456,12 @@ func (df *DoryFile) UpdateState(state *State) error {
 func (df *DoryFile) Compact() error {
 	// Collect all current entries
 	var entries []*Entry
+	ids := make([]string, 0, len(df.entries))
 	for id := range df.entries {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
 		entry, err := df.Get(id)
 		if err != nil {
 			continue
@@ -443,7 +469,9 @@ func (df *DoryFile) Compact() error {
 		entries = append(entries, entry)
 	}
 
-	df.knowledge.Close()
+	if err := df.knowledge.Close(); err != nil {
+		return err
+	}
 
 	// Create new knowledge file
 	tmpPath := df.KnowledgePath + ".tmp"
@@ -464,12 +492,22 @@ func (df *DoryFile) Compact() error {
 
 	// Write all entries
 	for _, entry := range entries {
-		stat, _ := tmpFile.Stat()
+		stat, err := tmpFile.Stat()
+		if err != nil {
+			tmpFile.Close()
+			os.Remove(tmpPath)
+			return err
+		}
 		offset := stat.Size()
 
 		var buf strings.Builder
 		buf.WriteString(ItemDelim + "\n")
-		entryData, _ := yaml.Marshal(entry)
+		entryData, err := yaml.Marshal(entry)
+		if err != nil {
+			tmpFile.Close()
+			os.Remove(tmpPath)
+			return err
+		}
 		buf.Write(entryData)
 		buf.WriteString("\n")
 
@@ -491,7 +529,10 @@ func (df *DoryFile) Compact() error {
 		}
 	}
 
-	tmpFile.Close()
+	if err := tmpFile.Close(); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
 
 	// Replace old file
 	if err := os.Rename(tmpPath, df.KnowledgePath); err != nil {
@@ -512,8 +553,12 @@ func (df *DoryFile) Compact() error {
 // Close syncs and closes the knowledge file
 func (df *DoryFile) Close() error {
 	if df.knowledge != nil {
-		df.knowledge.Sync() // Flush any buffered writes
-		return df.knowledge.Close()
+		syncErr := df.knowledge.Sync() // Flush any buffered writes
+		closeErr := df.knowledge.Close()
+		if syncErr != nil {
+			return syncErr
+		}
+		return closeErr
 	}
 	return nil
 }

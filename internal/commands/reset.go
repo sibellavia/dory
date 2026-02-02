@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sibellavia/dory/internal/doryfile"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var resetCmd = &cobra.Command{
@@ -24,11 +26,12 @@ Use --full to completely reinitialize (like rm -rf .dory && dory init).`,
 		full, _ := cmd.Flags().GetBool("full")
 		force, _ := cmd.Flags().GetBool("force")
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		// Count items to show user
-		items, _ := s.List("", "", "", time.Time{}, time.Time{})
+		items, err := s.List("", "", "", time.Time{}, time.Time{})
+		CheckError(err)
 		itemCount := len(items)
 
 		if !force {
@@ -41,7 +44,8 @@ Use --full to completely reinitialize (like rm -rf .dory && dory init).`,
 			fmt.Print(prompt)
 
 			reader := bufio.NewReader(os.Stdin)
-			answer, _ := reader.ReadString('\n')
+			answer, err := reader.ReadString('\n')
+			CheckError(err)
 			answer = strings.TrimSpace(strings.ToLower(answer))
 
 			if answer != "y" && answer != "yes" {
@@ -51,6 +55,18 @@ Use --full to completely reinitialize (like rm -rf .dory && dory init).`,
 		}
 
 		if full {
+			projectName := "project"
+			description := ""
+			if dump, err := s.DumpIndex(); err == nil {
+				var index doryfile.Index
+				if err := yaml.Unmarshal([]byte(dump), &index); err == nil {
+					if index.Project != "" {
+						projectName = index.Project
+					}
+					description = index.Description
+				}
+			}
+
 			// Full reset - remove everything and reinitialize
 			s.Close() // Close before removing
 
@@ -60,19 +76,31 @@ Use --full to completely reinitialize (like rm -rf .dory && dory init).`,
 			}
 
 			// Reinitialize
-			s2 := store.NewSingle("")
-			err := s2.Init("project", "")
+			s2 := store.New("")
+			err := s2.Init(projectName, description)
 			CheckError(err)
 			s2.Close()
 
-			fmt.Println("Dory fully reset")
+			OutputResult(cmd, map[string]interface{}{
+				"status":      "reset",
+				"full":        true,
+				"project":     projectName,
+				"description": description,
+			}, func() {
+				fmt.Println("Dory fully reset")
+			})
 		} else {
 			// Partial reset - remove all items, keep state
 			for _, item := range items {
-				s.Remove(item.ID)
+				CheckError(s.Remove(item.ID))
 			}
-			s.Compact()
-			fmt.Printf("Cleared %d knowledge items\n", itemCount)
+			CheckError(s.Compact())
+			OutputResult(cmd, map[string]interface{}{
+				"status":        "cleared",
+				"cleared_items": itemCount,
+			}, func() {
+				fmt.Printf("Cleared %d knowledge items\n", itemCount)
+			})
 		}
 	},
 }

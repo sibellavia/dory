@@ -1,8 +1,8 @@
 project: dory
 state:
     goal: Build dory - knowledge store for coding agents
-    progress: Added inline edit flags, improved DORY.md with session workflow, fixed trailing whitespace issue
+    progress: Removed legacy backend, unified store naming, and hardened I/O/error handling with new regression tests
     next:
-        - Fix emoji/Unicode literal style issue
-        - Release v0.4.0
-    last_updated: "2026-02-02T12:21:56+01:00"
+        - Review and commit backend cleanup + quality improvements
+        - Optionally tag release after commit
+    last_updated: "2026-02-02T20:15:51+01:00"

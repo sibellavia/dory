@@ -21,7 +21,7 @@ var statusCmd = &cobra.Command{
 		workingFiles, _ := cmd.Flags().GetStringSlice("working-file")
 		openQuestions, _ := cmd.Flags().GetStringSlice("question")
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 		err := s.UpdateStatus(goal, progress, blocker, next, workingFiles, openQuestions)
 		CheckError(err)

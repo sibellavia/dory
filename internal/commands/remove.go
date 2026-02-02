@@ -21,7 +21,7 @@ var removeCmd = &cobra.Command{
 		id := args[0]
 		force, _ := cmd.Flags().GetBool("force")
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		// Show item before removal
@@ -45,7 +45,8 @@ var removeCmd = &cobra.Command{
 
 			fmt.Print("\nConfirm removal? [y/N] ")
 			reader := bufio.NewReader(os.Stdin)
-			response, _ := reader.ReadString('\n')
+			response, err := reader.ReadString('\n')
+			CheckError(err)
 			response = strings.TrimSpace(strings.ToLower(response))
 			if response != "y" && response != "yes" {
 				fmt.Println("Aborted")

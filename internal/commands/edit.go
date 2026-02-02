@@ -9,6 +9,7 @@ import (
 
 	"github.com/sibellavia/dory/internal/doryfile"
 	"github.com/sibellavia/dory/internal/fileio"
+	"github.com/sibellavia/dory/internal/models"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -69,6 +70,7 @@ func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string
 	// Update fields if provided
 	var updated []string
 	if severity != "" {
+		CheckError(validateSeverityFlag(models.Severity(severity)))
 		entry.Severity = severity
 		updated = append(updated, "severity")
 	}
@@ -107,7 +109,7 @@ func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string
 }
 
 func editWithEditor(cmd *cobra.Command, id string) {
-	s := store.NewSingle("")
+	s := store.New("")
 
 	// Get current content
 	content, err := s.Show(id)
@@ -131,7 +133,10 @@ func editWithEditor(cmd *cobra.Command, id string) {
 		s.Close()
 		CheckError(err)
 	}
-	tmpfile.Close()
+	if err := tmpfile.Close(); err != nil {
+		s.Close()
+		CheckError(err)
+	}
 
 	// Open editor
 	editor := fileio.GetEditor()
@@ -170,11 +175,8 @@ func editWithEditor(cmd *cobra.Command, id string) {
 	// Preserve original ID
 	entry.ID = id
 
-	// Remove old entry and add new one
-	s.Remove(id)
-
-	// Re-add with the same ID (need direct access to doryfile)
-	// For now, close and reopen to add
+	// Append a new version with the same ID. The latest entry wins during scan.
+	// Do not call Remove(id) here, because that marks the ID as deleted.
 	s.Close()
 
 	// Reopen and add the entry directly
@@ -255,6 +257,15 @@ func parseEditedContent(content string) (*doryfile.Entry, error) {
 				break
 			}
 		}
+	}
+	if entry.Type == "" {
+		return nil, fmt.Errorf("frontmatter must include type")
+	}
+	if err := validateItemType(entry.Type); err != nil {
+		return nil, err
+	}
+	if err := validateSeverityFlag(models.Severity(entry.Severity)); err != nil {
+		return nil, err
 	}
 
 	return entry, nil

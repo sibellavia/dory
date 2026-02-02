@@ -37,7 +37,8 @@ Examples:
 		content, err := os.ReadFile(filePath)
 		CheckError(err)
 
-		frontmatter, body := parseFrontmatter(string(content))
+		frontmatter, body, err := parseFrontmatter(string(content))
+		CheckError(err)
 
 		itemType, _ := cmd.Flags().GetString("type")
 		topic, _ := cmd.Flags().GetString("topic")
@@ -68,23 +69,26 @@ Examples:
 		}
 
 		if itemType == "" {
-			fmt.Fprintln(os.Stderr, "Error: --type is required (lesson, decision, pattern) or specify in frontmatter")
-			os.Exit(1)
+			CheckError(fmt.Errorf("--type is required (lesson, decision, pattern) or specify in frontmatter"))
 		}
+		CheckError(validateItemType(itemType))
 
 		severity := models.Severity(severityStr)
-		if severity == "" {
-			severity = models.SeverityNormal
+		if itemType == "lesson" {
+			if severity == "" {
+				severity = models.SeverityNormal
+			}
+			CheckError(validateSeverityFlag(severity))
 		}
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		if split {
-			items := splitNumberedItems(body)
+			items, err := splitNumberedItems(body)
+			CheckError(err)
 			if len(items) == 0 {
-				fmt.Fprintln(os.Stderr, "Error: no numbered items found (expected patterns like '1) Title' or '1. Title')")
-				os.Exit(1)
+				CheckError(fmt.Errorf("no numbered items found (expected patterns like '1) Title' or '1. Title')"))
 			}
 			for _, item := range items {
 				id, err := importItem(s, itemType, item.title, item.body, topic, domain, severity, refs)
@@ -111,18 +115,16 @@ func init() {
 	RootCmd.AddCommand(importCmd)
 }
 
-func importItem(s *store.SingleStore, itemType, oneliner, body, topic, domain string, severity models.Severity, refs []string) (string, error) {
+func importItem(s *store.Store, itemType, oneliner, body, topic, domain string, severity models.Severity, refs []string) (string, error) {
 	switch itemType {
 	case "lesson":
 		if topic == "" {
-			fmt.Fprintln(os.Stderr, "Error: --topic is required for lessons")
-			os.Exit(1)
+			return "", fmt.Errorf("--topic is required for lessons")
 		}
 		return s.Learn(oneliner, topic, severity, "", body, refs)
 	case "decision":
 		if topic == "" {
-			fmt.Fprintln(os.Stderr, "Error: --topic is required for decisions")
-			os.Exit(1)
+			return "", fmt.Errorf("--topic is required for decisions")
 		}
 		return s.Decide(oneliner, topic, "", "", body, refs)
 	case "pattern":
@@ -130,14 +132,11 @@ func importItem(s *store.SingleStore, itemType, oneliner, body, topic, domain st
 			domain = topic
 		}
 		if domain == "" {
-			fmt.Fprintln(os.Stderr, "Error: --domain is required for patterns")
-			os.Exit(1)
+			return "", fmt.Errorf("--domain is required for patterns")
 		}
 		return s.Pattern(oneliner, domain, "", body, refs)
 	default:
-		fmt.Fprintf(os.Stderr, "Error: unknown type %q (use lesson, decision, or pattern)\n", itemType)
-		os.Exit(1)
-		return "", nil
+		return "", fmt.Errorf("unknown type %q (use lesson, decision, or pattern)", itemType)
 	}
 }
 
@@ -148,7 +147,7 @@ type numberedItem struct {
 
 var numberedItemPattern = regexp.MustCompile(`^(\d+)[)\.]\s+(.+)$`)
 
-func splitNumberedItems(content string) []numberedItem {
+func splitNumberedItems(content string) ([]numberedItem, error) {
 	var items []numberedItem
 	var currentTitle string
 	var currentBody strings.Builder
@@ -178,27 +177,32 @@ func splitNumberedItems(content string) []numberedItem {
 		})
 	}
 
-	return items
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func parseFrontmatter(content string) (map[string]interface{}, string) {
+func parseFrontmatter(content string) (map[string]interface{}, string, error) {
 	frontmatter := make(map[string]interface{})
 
 	if !strings.HasPrefix(content, "---\n") {
-		return frontmatter, content
+		return frontmatter, content, nil
 	}
 
 	rest := content[4:]
 	endIdx := strings.Index(rest, "\n---")
 	if endIdx == -1 {
-		return frontmatter, content
+		return frontmatter, content, nil
 	}
 
 	yamlContent := rest[:endIdx]
 	body := strings.TrimPrefix(rest[endIdx+4:], "\n")
 
-	yaml.Unmarshal([]byte(yamlContent), &frontmatter)
-	return frontmatter, body
+	if err := yaml.Unmarshal([]byte(yamlContent), &frontmatter); err != nil {
+		return nil, "", fmt.Errorf("invalid frontmatter: %w", err)
+	}
+	return frontmatter, body, nil
 }
 
 func extractOneliner(body, filePath string) string {

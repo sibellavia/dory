@@ -34,11 +34,10 @@ Use --body - to read markdown content from stdin:
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if topic == "" {
-			fmt.Fprintln(os.Stderr, "Error: --topic is required")
-			os.Exit(1)
+			CheckError(fmt.Errorf("--topic is required"))
 		}
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		var oneliner, summary, body string
@@ -65,8 +64,7 @@ Use --body - to read markdown content from stdin:
 			content, err := openEditor(templates.DecisionTemplate)
 			CheckError(err)
 			if content == "" || content == templates.DecisionTemplate {
-				fmt.Fprintln(os.Stderr, "Aborted: no content provided")
-				os.Exit(1)
+				CheckError(fmt.Errorf("aborted: no content provided"))
 			}
 			oneliner, summary, body = parseEditorContent(content)
 		}

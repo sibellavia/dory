@@ -27,7 +27,7 @@ Examples:
 		topic, _ := cmd.Flags().GetString("topic")
 		appendFile, _ := cmd.Flags().GetString("append")
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		var output string
@@ -54,14 +54,26 @@ Examples:
 			_, err = f.WriteString("\n" + output)
 			CheckError(err)
 
-			fmt.Printf("Appended to %s\n", appendFile)
-		} else {
-			fmt.Print(output)
+			result := map[string]interface{}{
+				"status": "appended",
+				"file":   appendFile,
+			}
+			OutputResult(cmd, result, func() {
+				fmt.Printf("Appended to %s\n", appendFile)
+			})
+			return
 		}
+
+		if GetOutputFormat(cmd) == "human" {
+			fmt.Print(output)
+			return
+		}
+
+		OutputResult(cmd, map[string]string{"content": output}, func() {})
 	},
 }
 
-func exportAll(s *store.SingleStore) (string, error) {
+func exportAll(s *store.Store) (string, error) {
 	items, err := s.List("", "", "", time.Time{}, time.Time{})
 	if err != nil {
 		return "", err
@@ -113,7 +125,7 @@ func exportAll(s *store.SingleStore) (string, error) {
 	return buf.String(), nil
 }
 
-func exportByTopic(s *store.SingleStore, topic string) (string, error) {
+func exportByTopic(s *store.Store, topic string) (string, error) {
 	items, err := s.List(topic, "", "", time.Time{}, time.Time{})
 	if err != nil {
 		return "", err
@@ -165,7 +177,7 @@ func exportByTopic(s *store.SingleStore, topic string) (string, error) {
 	return buf.String(), nil
 }
 
-func exportItems(s *store.SingleStore, ids []string) (string, error) {
+func exportItems(s *store.Store, ids []string) (string, error) {
 	// Get all items and filter
 	allItems, err := s.List("", "", "", time.Time{}, time.Time{})
 	if err != nil {

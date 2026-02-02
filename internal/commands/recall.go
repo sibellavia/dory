@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/sibellavia/dory/internal/store"
@@ -18,7 +17,7 @@ var recallCmd = &cobra.Command{
 		RequireStore()
 
 		topic := args[0]
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		format := GetOutputFormat(cmd)
@@ -36,10 +35,7 @@ var recallCmd = &cobra.Command{
 		}
 
 		content, err := s.Recall(topic)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		CheckError(err)
 		fmt.Print(content)
 	},
 }

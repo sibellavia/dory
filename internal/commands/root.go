@@ -51,11 +51,12 @@ func OutputResult(cmd *cobra.Command, data interface{}, humanOutput func()) {
 	case "json":
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(data)
+		CheckError(enc.Encode(data))
 	case "yaml":
 		enc := yaml.NewEncoder(os.Stdout)
 		enc.SetIndent(2)
-		enc.Encode(data)
+		CheckError(enc.Encode(data))
+		CheckError(enc.Close())
 	default:
 		humanOutput()
 	}

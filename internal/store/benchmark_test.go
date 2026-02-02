@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -16,12 +15,18 @@ func BenchmarkWrite(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				dir := b.TempDir()
 				root := filepath.Join(dir, ".dory")
-				s := NewSingle(root)
-				s.Init("benchmark", "")
-				for j := 0; j < count; j++ {
-					s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil)
+				s := New(root)
+				if err := s.Init("benchmark", ""); err != nil {
+					b.Fatal(err)
 				}
-				s.Close()
+				for j := 0; j < count; j++ {
+					if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+						b.Fatal(err)
+					}
+				}
+				if err := s.Close(); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
@@ -33,18 +38,28 @@ func BenchmarkOpen(b *testing.B) {
 			// Setup: create store with items
 			dir := b.TempDir()
 			root := filepath.Join(dir, ".dory")
-			s := NewSingle(root)
-			s.Init("benchmark", "")
-			for j := 0; j < count; j++ {
-				s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil)
+			s := New(root)
+			if err := s.Init("benchmark", ""); err != nil {
+				b.Fatal(err)
 			}
-			s.Close()
+			for j := 0; j < count; j++ {
+				if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+					b.Fatal(err)
+				}
+			}
+			if err := s.Close(); err != nil {
+				b.Fatal(err)
+			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				s2 := NewSingle(root)
-				s2.List("", "", "", time.Time{}, time.Time{}) // Forces open
-				s2.Close()
+				s2 := New(root)
+				if _, err := s2.List("", "", "", time.Time{}, time.Time{}); err != nil {
+					b.Fatal(err)
+				}
+				if err := s2.Close(); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
@@ -53,18 +68,26 @@ func BenchmarkOpen(b *testing.B) {
 func BenchmarkRandomAccess(b *testing.B) {
 	dir := b.TempDir()
 	root := filepath.Join(dir, ".dory")
-	s := NewSingle(root)
-	s.Init("benchmark", "")
+	s := New(root)
+	if err := s.Init("benchmark", ""); err != nil {
+		b.Fatal(err)
+	}
 	for j := 0; j < 100; j++ {
-		s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil)
+		if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		id := fmt.Sprintf("L%03d", (i%100)+1)
-		s.Show(id)
+		if _, err := s.Show(id); err != nil {
+			b.Fatal(err)
+		}
 	}
-	s.Close()
+	if err := s.Close(); err != nil {
+		b.Fatal(err)
+	}
 }
 
 func BenchmarkList(b *testing.B) {
@@ -72,28 +95,25 @@ func BenchmarkList(b *testing.B) {
 		b.Run(fmt.Sprintf("items=%d", count), func(b *testing.B) {
 			dir := b.TempDir()
 			root := filepath.Join(dir, ".dory")
-			s := NewSingle(root)
-			s.Init("benchmark", "")
+			s := New(root)
+			if err := s.Init("benchmark", ""); err != nil {
+				b.Fatal(err)
+			}
 			for j := 0; j < count; j++ {
-				s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil)
+				if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+					b.Fatal(err)
+				}
 			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				s.List("", "", "", time.Time{}, time.Time{})
+				if _, err := s.List("", "", "", time.Time{}, time.Time{}); err != nil {
+					b.Fatal(err)
+				}
 			}
-			s.Close()
+			if err := s.Close(); err != nil {
+				b.Fatal(err)
+			}
 		})
 	}
-}
-
-func countFiles(root string) int {
-	count := 0
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err == nil && !info.IsDir() {
-			count++
-		}
-		return nil
-	})
-	return count
 }

@@ -487,3 +487,42 @@ body: |-
     - Simpler mental model
     - Better DX - edits just work
 
+===
+id: D012
+type: decision
+topic: architecture
+oneliner: Remove legacy backend and standardize on Store/New API
+created: 2026-02-02T20:15:51.467774+01:00
+refs:
+    - D011
+body: |+
+    # Remove legacy backend and standardize on Store/New API
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    Remove legacy backend and standardize on Store/New API
+
+    ## Rationale
+
+
+
+===
+id: L009
+type: lesson
+topic: storage
+severity: high
+oneliner: Deterministic compaction requires stable ID ordering
+created: 2026-02-02T20:15:51.749383+01:00
+refs:
+    - L007
+body: |
+    # Deterministic compaction requires stable ID ordering
+
+    ## Details
+
+    (Add details here)
+

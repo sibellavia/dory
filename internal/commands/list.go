@@ -23,15 +23,22 @@ var listCmd = &cobra.Command{
 		sinceStr, _ := cmd.Flags().GetString("since")
 		untilStr, _ := cmd.Flags().GetString("until")
 
-		var since, until time.Time
-		if sinceStr != "" {
-			since, _ = time.Parse("2006-01-02", sinceStr)
+		CheckError(validateItemType(itemType))
+		CheckError(validateSeverityFlag(severity))
+
+		since, err := parseDateFlag(sinceStr, "--since")
+		CheckError(err)
+		until, err := parseDateFlag(untilStr, "--until")
+		CheckError(err)
+		if !until.IsZero() {
+			// Include the full day for date-only filters.
+			until = until.Add(24*time.Hour - time.Nanosecond)
 		}
-		if untilStr != "" {
-			until, _ = time.Parse("2006-01-02", untilStr)
+		if !since.IsZero() && !until.IsZero() && since.After(until) {
+			CheckError(fmt.Errorf("--since must be earlier than or equal to --until"))
 		}
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 		items, err := s.List(topic, itemType, severity, since, until)
 		CheckError(err)

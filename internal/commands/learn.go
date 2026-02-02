@@ -38,11 +38,11 @@ Use --body - to read markdown content from stdin:
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if topic == "" {
-			fmt.Fprintln(os.Stderr, "Error: --topic is required")
-			os.Exit(1)
+			CheckError(fmt.Errorf("--topic is required"))
 		}
+		CheckError(validateSeverityFlag(severity))
 
-		s := store.NewSingle("")
+		s := store.New("")
 		defer s.Close()
 
 		var oneliner, summary, body string
@@ -69,8 +69,7 @@ Use --body - to read markdown content from stdin:
 			content, err := openEditor(templates.LessonTemplate)
 			CheckError(err)
 			if content == "" || content == templates.LessonTemplate {
-				fmt.Fprintln(os.Stderr, "Aborted: no content provided")
-				os.Exit(1)
+				CheckError(fmt.Errorf("aborted: no content provided"))
 			}
 			oneliner, summary, body = parseEditorContent(content)
 		}
@@ -114,7 +113,9 @@ func openEditor(initialContent string) (string, error) {
 	if _, err := tmpfile.WriteString(initialContent); err != nil {
 		return "", err
 	}
-	tmpfile.Close()
+	if err := tmpfile.Close(); err != nil {
+		return "", err
+	}
 
 	// Open editor
 	editor := fileio.GetEditor()
