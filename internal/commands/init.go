@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sibellavia/dory/content"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +22,7 @@ cat .dory/index.yaml
 Record lessons (` + "`dory learn`" + `), decisions (` + "`dory decide`" + `), and patterns (` + "`dory pattern`" + `).
 Update status before ending (` + "`dory status`" + `).
 `
+
 
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -42,6 +44,9 @@ var initCmd = &cobra.Command{
 		CheckError(err)
 		s.Close()
 
+		// Create DORY.md if it doesn't exist
+		doryMdCreated := createDoryMd()
+
 		// Auto-append to CLAUDE.md and/or AGENTS.md if they exist
 		agentFiles := []string{"CLAUDE.md", "AGENTS.md"}
 		var appendedTo []string
@@ -56,17 +61,37 @@ var initCmd = &cobra.Command{
 			"project": project,
 			"path":    ".dory",
 		}
+		if doryMdCreated {
+			result["created"] = "DORY.md"
+		}
 		if len(appendedTo) > 0 {
 			result["appended_to"] = appendedTo
 		}
 
 		OutputResult(cmd, result, func() {
 			fmt.Printf("Initialized dory for '%s' in .dory/\n", project)
+			if doryMdCreated {
+				fmt.Println("Created DORY.md")
+			}
 			for _, file := range appendedTo {
 				fmt.Printf("Added dory instructions to %s\n", file)
 			}
 		})
 	},
+}
+
+// createDoryMd creates DORY.md if it doesn't exist. Returns true if created.
+func createDoryMd() bool {
+	filename := "DORY.md"
+
+	// Check if file already exists
+	if _, err := os.Stat(filename); err == nil {
+		return false // File exists
+	}
+
+	// Create the file with embedded content
+	err := os.WriteFile(filename, []byte(content.DoryMd), 0644)
+	return err == nil
 }
 
 // appendDoryInstructions appends dory instructions to a file if it exists

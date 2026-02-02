@@ -4,7 +4,7 @@ Modern coding agents are capable! They read code, grep codebases, and build ment
 
 Dory captures what would otherwise disappear: learnings from experience you can't grep for, the rationale behind decisions that isn't in the code, project-specific gotchas learned through several sessions and hours, and session state so the next agent knows where you left off.
 
-Dory stores structured knowledge in plain text files (YAML + Markdown) that are token-efficient (load only what's needed), human-editable, and git-friendly. This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
+Dory stores structured knowledge in a compact single-file format that is token-efficient, human-readable, and git-friendly. This tool was made for myself, to experiment with agents, and to use it in complex projects that require extended knowledge across different coding sessions.
 
 ## Install
 
@@ -17,7 +17,7 @@ Or download a binary from [releases](https://github.com/sibellavia/dory/releases
 ## Quick start
 
 ```bash
-dory init                        # Initialize in your project
+dory init                        # Initialize in your project 
 cat .dory/index.yaml             # Read state at session start
 
 # Record knowledge as you work
@@ -36,22 +36,21 @@ For small projects, a single markdown file works fine. Dory helps when knowledge
 - **Queryable**: `dory recall auth` instead of scrolling through one big file
 - **Incremental**: load the index, fetch full content only when needed
 - **Structured**: categorized by type, topic, severity
-- **Linked**: items reference each other with refs/edges
+- **Linked**: items reference each other with refs
 - **Session state**: goal, progress, next steps tracked automatically
 
 
 ## How it works
 
-Dory creates a `.dory/` directory in your project that stores everything as plain text files. The design tries to prioritize token efficiency: agents load a lightweight index at session start, then fetch full content only when needed.
+Dory creates a `.dory/` directory with just two files:
 
 ```
 .dory/
-├── index.yaml       # Index + session state (always loaded)
-└── knowledge/       # Full content files
-    ├── L001.eng     # Lessons
-    ├── D001.eng     # Decisions
-    └── P001.eng     # Patterns
+├── index.yaml      # Project metadata + session state (always loaded)
+└── knowledge.dory  # Append-only content file (YAML entries separated by ===)
 ```
+
+The format is designed for efficiency: agents load the lightweight index at session start, then fetch full content only when needed. The append-only design makes writes fast and git diffs clean.
 
 Knowledge is organized into three types, each serving a distinct purpose. **Lessons** capture things you learned the hard way (bugs, gotchas, and fixes worth remembering). **Decisions** record architectural and technical choices along with their rationale, so future sessions understand why things are the way they are. **Patterns** document established conventions and "how we do things here."
 
@@ -61,7 +60,7 @@ Knowledge is organized into three types, each serving a distinct purpose. **Less
 | Decision | D | Architectural/technical choices | topic |
 | Pattern | P | Established conventions | domain |
 
-All types support `refs` to link related items (e.g., `--refs D001,L002`). These create edges in the index for quick traversal.
+All types support `refs` to link related items (e.g., `--refs D001,L002`).
 
 Lessons support severity levels to help agents prioritize what matters. Critical lessons are things that will break if ignored. High severity saves significant debugging time. Normal is good general knowledge, and low covers edge cases.
 
@@ -142,7 +141,7 @@ dory export --append CLAUDE.md   # Append to file
 ```bash
 dory edit <id>     # Edit in $EDITOR
 dory remove <id>   # Delete (with confirmation)
-dory rebuild       # Rebuild index from files
+dory compact       # Remove deleted entries, reclaim space
 dory reset         # Clear all knowledge (keep config)
 dory reset --full  # Full reset (reinitialize)
 ```
@@ -153,7 +152,9 @@ All commands support `--json` and `--yaml` flags for machine-readable output.
 
 ## Agent Integration
 
-When you run `dory init`, it automatically appends instructions to `CLAUDE.md` and/or `AGENTS.md` if they exist in your project.
+When you run `dory init`, it automatically:
+- Creates `DORY.md` with usage instructions for agents
+- Appends instructions to `CLAUDE.md` and/or `AGENTS.md` if they exist
 
 You can also manually copy [DORY.md](DORY.md) to your project and include it in your agent's context.
 

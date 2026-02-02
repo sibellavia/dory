@@ -7,7 +7,7 @@ import (
 	"github.com/sibellavia/dory/internal/commands"
 )
 
-var version = "0.3.0"
+var version = "0.4.0"
 
 func main() {
 	commands.RootCmd.Version = getVersion()
