@@ -1,9 +1,8 @@
 project: dory
 state:
     goal: Build dory - knowledge store for coding agents
-    progress: Single-file format implemented and migrated (D011, L005)
+    progress: Added inline edit flags, improved DORY.md with session workflow, fixed trailing whitespace issue
     next:
-        - Add 'dory related <id>' command for ref/edge queries
-        - Release v0.4.0 with new format
-        - Update documentation for new format
-    last_updated: "2026-02-02T10:58:56+01:00"
+        - Fix emoji/Unicode literal style issue
+        - Release v0.4.0
+    last_updated: "2026-02-02T12:21:56+01:00"

@@ -469,3 +469,12 @@ body: |
 
     Ironic - the forgetful fish helps agents remember. Memorable and fun.
 
+===
+id: L007
+type: lesson
+topic: storage
+severity: normal
+oneliner: Emojis and special Unicode characters force YAML quoted style
+created: 2026-02-02T12:21:49.796364+01:00
+body: "# YAML Literal Style Limitation\n\n## Problem\nWhen body content contains emojis (e.g., \U0001F389) or other special Unicode characters, yaml.v3 cannot use literal block style and falls back to quoted style with Unicode escapes.\n\nExample:\n- Input: `## Success \U0001F389`\n- Stored as: `\"## Success \\U0001F389\"`\n\n## Impact\n- Raw knowledge.dory file is harder to read\n- Content is still valid and displays correctly via `dory show`\n\n## Potential Fixes\n1. Strip emojis before storing (lossy)\n2. Custom YAML encoder for body field\n3. Accept as limitation (current)\n\n## Workaround\nContent with emojis works correctly when retrieved. Only the raw file readability is affected."
+
