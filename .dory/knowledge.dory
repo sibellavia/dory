@@ -1,219 +1,61 @@
 DORY:v1
 ===
-id: P001
-type: pattern
-domain: cli
-oneliner: All commands support --json and --yaml output flags
-created: 2026-01-31T00:00:00Z
-body: |
-    # All commands support --json and --yaml output flags
-
-    ## Pattern
-
-    All commands support --json and --yaml output flags
-
-    ## Implementation
-
-    (Add implementation details here)
-
-===
-id: L004
-type: lesson
-topic: architecture
-severity: high
-oneliner: 'Hot/cold storage: active files + archived bundles'
-created: 2026-02-01T22:31:52+01:00
-refs:
-    - L003
-body: |-
-    # Hot/Cold Hybrid Storage
-
-    ## Concept
-    - Hot path: individual .eng files (current behavior)
-    - Cold path: archived bundles (YAML stream, blob, etc.)
-
-    ## Structure
-    ```
-    .dory/
-    ├── index.yaml
-    ├── knowledge/        # hot - fast access, editable
-    │   ├── L045.eng
-    │   └── D012.eng
-    └── archive/          # cold - compact, bundled
-        └── 2026-Q1.yaml
-    ```
-
-    ## Commands
-    - `dory archive --before 2026-01-01`
-    - `dory archive --topic legacy-api`
-    - `dory unarchive L003`
-
-    ## Benefits
-    - Recent knowledge: fast O(1) access
-    - Old knowledge: compact, fewer files
-    - Best of both worlds
-
-    ## Similar patterns
-    - Git: loose objects vs packfiles
-    - Databases: hot/cold tiers
-    - Log systems: recent vs archived
-
-===
-id: D011
+id: D008
 type: decision
-topic: architecture
-oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
-created: 2026-02-02T10:55:51.887336+01:00
-body: |
-    # Single-File Storage Format
-
-    ## Context
-    The original multi-file format (one .eng file per item) didn't scale well:
-    - 500 items = 501 files
-    - Git overhead with many small files
-    - Slower writes (file creation overhead)
-
-    ## Decision
-    Adopt a two-file format:
-    - `knowledge.dory`: Append-only content file with YAML entries separated by `===`
-    - `index.yaml`: Project metadata, state, and deleted IDs only
-
-    ## Key Design Choices
-    - No persistent offsets (rebuild index on open for corruption resistance)
-    - Append-only writes (no mid-file modifications)
-    - In-memory index with O(1) random access
-    - Deleted items tracked in index until compact
-
-    ## Benchmark Results
-    | Metric | Improvement |
-    |--------|-------------|
-    | Write speed | 16-180x faster |
-    | List speed | 18-36x faster |
-    | File count | O(1) vs O(n) |
-    | Open time | 2x slower (acceptable: 7ms vs 4ms at 500 items)
-
-    ## Trade-offs Accepted
-    - Slightly slower opens (full file scan)
-    - Less crash-safe (no fsync per write)
-    - Single growing file vs many small files
-
-===
-id: P003
-type: pattern
-domain: cli
-oneliner: Editor mode for humans, --body flag for agents
+topic: integration
+oneliner: Auto-append dory instructions on init
 created: 2026-02-01T00:00:00Z
-refs:
-    - P002
 body: |-
-    # Dual Interface Pattern
-
-    ## For Humans
-
-    - Omit arguments to open $EDITOR with template
-    - `dory learn --topic foo` opens editor
-    - `dory edit D001` edits existing item
-
-    ## For Agents
-
-    - Use `--body "content"` flag for inline content
-    - Use `--body -` to pipe from stdin
-    - Programmatic, non-interactive
-
-===
-id: L003
-type: lesson
-topic: architecture
-severity: critical
-oneliner: Document store for AI agents - explore single-file, text-based, queryable format
-created: 2026-02-01T22:02:21+01:00
-body: |-
-    # Document Store for AI Agents
-
-    ## Problem
-    Current file-per-item approach doesn't scale. Need a format that is:
-    - Single file (or few files)
-    - Text-based, human/agent readable
-    - Queryable with index support
-    - Git-friendly
-
-    ## Candidates
-    - YAML stream (--- separators)
-    - JSONL with index header
-    - Custom DSL optimized for agents
-    - Org-mode / outline style
-
-    ## Requirements
-    - Agents can cat/read directly
-    - Supports fast lookup by ID
-    - Greppable content
-    - Append-friendly for git diffs
-
-    ## Priority
-    High - could be the core innovation of Dory.
-
-===
-id: D009
-type: decision
-topic: architecture
-oneliner: Full RFC3339 timestamps in .eng files
-created: 2026-02-01T19:00:31+01:00
-body: |-
-    # Full timestamps
+    # Auto-append on init
 
     ## Decision
 
-    Store created field as RFC3339 format (e.g., 2026-02-01T18:58:21+01:00) instead of date-only.
+    When `dory init` runs, automatically append dory usage instructions to CLAUDE.md and/or AGENTS.md if they exist.
+
+    ## Behavior
+
+    - Checks both files (not all users use Claude Code)
+    - Idempotent - won't duplicate if instructions already present
+    - No prompt - just does it if file exists
 
     ## Rationale
 
-    - Enables future temporal relations
-    - More precision for sorting and filtering
-    - Backward compatible - parser handles both formats
+    Tighter integration with existing agent instruction files reduces friction for adoption.
 
 ===
-id: L002
+id: L001
 type: lesson
-topic: git
-severity: normal
-oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+topic: architecture
+severity: high
+oneliner: Rebuild loses oneliners if not stored in frontmatter
 created: 2026-01-31T00:00:00Z
 body: |
-    # Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+    # Rebuild loses oneliners if not stored in frontmatter
 
     ## Details
 
     (Add details here)
 
 ===
-id: L005
-type: lesson
-topic: architecture
-severity: high
-oneliner: Scan-on-open beats persistent offsets for corruption resistance
-created: 2026-02-02T10:56:03.695826+01:00
+id: D005
+type: decision
+topic: branding
+oneliner: Name the tool Dory after Finding Nemo character
+created: 2026-01-31T00:00:00Z
 body: |
-    # Scan-on-Open Index Strategy
+    # Name the tool Dory after Finding Nemo character
 
-    ## The Problem
-    Storing byte offsets in the index file creates fragility:
-    - Manual file edits corrupt the index
-    - Any byte shift invalidates all subsequent offsets
-    - Recovery requires full rebuild anyway
+    ## Context
 
-    ## The Solution
-    Don't persist offsets at all. On file open:
-    1. Scan the knowledge file sequentially
-    2. Build in-memory index with offsets
-    3. Use in-memory offsets for O(1) random access
+    (Add context here)
 
-    ## Performance Impact
-    - Open time: ~7ms for 500 items (acceptable)
-    - Random access: Still O(1) via in-memory map
-    - List operations: Faster (pure in-memory)
+    ## Decision
 
-    ## Lesson
-    Prefer robustness over micro-optimization. The 'slow' scan is imperceptible (<10ms), but corruption resistance is invaluable.
+    Name the tool Dory after Finding Nemo character
+
+    ## Rationale
+
+    Ironic - the forgetful fish helps agents remember. Memorable and fun.
 
 ===
 id: D004
@@ -258,15 +100,6 @@ body: |
     Industry standard for Go CLIs, provides subcommands, flags, and help generation
 
 ===
-id: L006
-type: lesson
-topic: performance
-severity: critical
-oneliner: Test lesson for edit
-created: 2026-02-02T12:06:59.204086+01:00
-body: Test body content
-
-===
 id: D003
 type: decision
 topic: file-format
@@ -286,6 +119,306 @@ body: |
     ## Rationale
 
     Machine-readable metadata with human-readable content, similar to Jekyll/Hugo
+
+===
+id: L007
+type: lesson
+topic: storage
+severity: normal
+oneliner: Emojis and special Unicode characters force YAML quoted style
+created: 2026-02-02T12:21:49.796364+01:00
+body: "# YAML Literal Style Limitation\n\n## Problem\nWhen body content contains emojis (e.g., \U0001F389) or other special Unicode characters, yaml.v3 cannot use literal block style and falls back to quoted style with Unicode escapes.\n\nExample:\n- Input: `## Success \U0001F389`\n- Stored as: `\"## Success \\U0001F389\"`\n\n## Impact\n- Raw knowledge.dory file is harder to read\n- Content is still valid and displays correctly via `dory show`\n\n## Potential Fixes\n1. Strip emojis before storing (lossy)\n2. Custom YAML encoder for body field\n3. Accept as limitation (current)\n\n## Workaround\nContent with emojis works correctly when retrieved. Only the raw file readability is affected."
+
+===
+id: L008
+type: lesson
+topic: test
+severity: normal
+oneliner: Test heredoc approach
+created: 2026-02-02T12:26:33.360858+01:00
+body: "# Test Entry\n\n## Section with emoji \U0001F389\nThis should work naturally.\n\n## Code example\n```go\nfunc main() {\n    fmt.Println(\"Hello\")\n}\n```\n"
+
+===
+id: P001
+type: pattern
+domain: cli
+oneliner: All commands support --json and --yaml output flags
+created: 2026-01-31T00:00:00Z
+body: |
+    # All commands support --json and --yaml output flags
+
+    ## Pattern
+
+    All commands support --json and --yaml output flags
+
+    ## Implementation
+
+    (Add implementation details here)
+
+===
+id: D011
+type: decision
+topic: architecture
+oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
+created: 2026-02-02T10:55:51.887336+01:00
+body: |
+    # Single-File Storage Format
+
+    ## Context
+    The original multi-file format (one .eng file per item) didn't scale well:
+    - 500 items = 501 files
+    - Git overhead with many small files
+    - Slower writes (file creation overhead)
+
+    ## Decision
+    Adopt a two-file format:
+    - `knowledge.dory`: Append-only content file with YAML entries separated by `===`
+    - `index.yaml`: Project metadata, state, and deleted IDs only
+
+    ## Key Design Choices
+    - No persistent offsets (rebuild index on open for corruption resistance)
+    - Append-only writes (no mid-file modifications)
+    - In-memory index with O(1) random access
+    - Deleted items tracked in index until compact
+
+    ## Benchmark Results
+    | Metric | Improvement |
+    |--------|-------------|
+    | Write speed | 16-180x faster |
+    | List speed | 18-36x faster |
+    | File count | O(1) vs O(n) |
+    | Open time | 2x slower (acceptable: 7ms vs 4ms at 500 items)
+
+    ## Trade-offs Accepted
+    - Slightly slower opens (full file scan)
+    - Less crash-safe (no fsync per write)
+    - Single growing file vs many small files
+
+===
+id: L005
+type: lesson
+topic: architecture
+severity: high
+oneliner: Scan-on-open beats persistent offsets for corruption resistance
+created: 2026-02-02T10:56:03.695826+01:00
+body: |
+    # Scan-on-Open Index Strategy
+
+    ## The Problem
+    Storing byte offsets in the index file creates fragility:
+    - Manual file edits corrupt the index
+    - Any byte shift invalidates all subsequent offsets
+    - Recovery requires full rebuild anyway
+
+    ## The Solution
+    Don't persist offsets at all. On file open:
+    1. Scan the knowledge file sequentially
+    2. Build in-memory index with offsets
+    3. Use in-memory offsets for O(1) random access
+
+    ## Performance Impact
+    - Open time: ~7ms for 500 items (acceptable)
+    - Random access: Still O(1) via in-memory map
+    - List operations: Faster (pure in-memory)
+
+    ## Lesson
+    Prefer robustness over micro-optimization. The 'slow' scan is imperceptible (<10ms), but corruption resistance is invaluable.
+
+===
+id: D010
+type: decision
+topic: architecture
+oneliner: Remove status field from decisions
+created: 2026-02-01T19:00:49+01:00
+body: |-
+    # Remove status field
+
+    ## Decision
+
+    Remove the `status: active` field from decision frontmatter.
+
+    ## Rationale
+
+    - Agents rarely update it
+    - Over-engineering for current use case
+    - Can be added back later if needed
+
+===
+id: L004
+type: lesson
+topic: architecture
+severity: high
+oneliner: 'Hot/cold storage: active files + archived bundles'
+created: 2026-02-01T22:31:52+01:00
+refs:
+    - L003
+body: |-
+    # Hot/Cold Hybrid Storage
+
+    ## Concept
+    - Hot path: individual .eng files (current behavior)
+    - Cold path: archived bundles (YAML stream, blob, etc.)
+
+    ## Structure
+    ```
+    .dory/
+    ├── index.yaml
+    ├── knowledge/        # hot - fast access, editable
+    │   ├── L045.eng
+    │   └── D012.eng
+    └── archive/          # cold - compact, bundled
+        └── 2026-Q1.yaml
+    ```
+
+    ## Commands
+    - `dory archive --before 2026-01-01`
+    - `dory archive --topic legacy-api`
+    - `dory unarchive L003`
+
+    ## Benefits
+    - Recent knowledge: fast O(1) access
+    - Old knowledge: compact, fewer files
+    - Best of both worlds
+
+    ## Similar patterns
+    - Git: loose objects vs packfiles
+    - Databases: hot/cold tiers
+    - Log systems: recent vs archived
+
+===
+id: P003
+type: pattern
+domain: cli
+oneliner: Editor mode for humans, --body flag for agents
+created: 2026-02-01T00:00:00Z
+refs:
+    - P002
+body: |-
+    # Dual Interface Pattern
+
+    ## For Humans
+
+    - Omit arguments to open $EDITOR with template
+    - `dory learn --topic foo` opens editor
+    - `dory edit D001` edits existing item
+
+    ## For Agents
+
+    - Use `--body "content"` flag for inline content
+    - Use `--body -` to pipe from stdin
+    - Programmatic, non-interactive
+
+===
+id: D009
+type: decision
+topic: architecture
+oneliner: Full RFC3339 timestamps in .eng files
+created: 2026-02-01T19:00:31+01:00
+body: |-
+    # Full timestamps
+
+    ## Decision
+
+    Store created field as RFC3339 format (e.g., 2026-02-01T18:58:21+01:00) instead of date-only.
+
+    ## Rationale
+
+    - Enables future temporal relations
+    - More precision for sorting and filtering
+    - Backward compatible - parser handles both formats
+
+===
+id: P002
+type: pattern
+domain: cli
+oneliner: Use --body flag or stdin for programmatic content input
+created: 2026-01-31T00:00:00Z
+body: |
+    # Use --body flag or stdin for programmatic content input
+
+    ## Pattern
+
+    Use --body flag or stdin for programmatic content input
+
+    ## Implementation
+
+    (Add implementation details here)
+
+===
+id: D002
+type: decision
+topic: architecture
+oneliner: Store oneliner in .eng frontmatter
+created: 2026-01-31T00:00:00Z
+body: |
+    # Store oneliner in .eng frontmatter
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    Store oneliner in .eng frontmatter
+
+    ## Rationale
+
+    Enables rebuild command to reconstruct index without losing oneliners
+
+===
+id: L003
+type: lesson
+topic: architecture
+severity: critical
+oneliner: Document store for AI agents - explore single-file, text-based, queryable format
+created: 2026-02-01T22:02:21+01:00
+body: |-
+    # Document Store for AI Agents
+
+    ## Problem
+    Current file-per-item approach doesn't scale. Need a format that is:
+    - Single file (or few files)
+    - Text-based, human/agent readable
+    - Queryable with index support
+    - Git-friendly
+
+    ## Candidates
+    - YAML stream (--- separators)
+    - JSONL with index header
+    - Custom DSL optimized for agents
+    - Org-mode / outline style
+
+    ## Requirements
+    - Agents can cat/read directly
+    - Supports fast lookup by ID
+    - Greppable content
+    - Append-friendly for git diffs
+
+    ## Priority
+    High - could be the core innovation of Dory.
+
+===
+id: L002
+type: lesson
+topic: git
+severity: normal
+oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+created: 2026-01-31T00:00:00Z
+body: |
+    # Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+
+    ## Details
+
+    (Add details here)
+
+===
+id: L006
+type: lesson
+topic: performance
+severity: critical
+oneliner: Test lesson for edit
+created: 2026-02-02T12:06:59.204086+01:00
+body: Test body content
 
 ===
 id: D006
@@ -327,23 +460,6 @@ body: |
     - Graph visualization
 
 ===
-id: P002
-type: pattern
-domain: cli
-oneliner: Use --body flag or stdin for programmatic content input
-created: 2026-01-31T00:00:00Z
-body: |
-    # Use --body flag or stdin for programmatic content input
-
-    ## Pattern
-
-    Use --body flag or stdin for programmatic content input
-
-    ## Implementation
-
-    (Add implementation details here)
-
-===
 id: D007
 type: decision
 topic: architecture
@@ -370,111 +486,4 @@ body: |-
     - No regeneration issues
     - Simpler mental model
     - Better DX - edits just work
-
-===
-id: D008
-type: decision
-topic: integration
-oneliner: Auto-append dory instructions on init
-created: 2026-02-01T00:00:00Z
-body: |-
-    # Auto-append on init
-
-    ## Decision
-
-    When `dory init` runs, automatically append dory usage instructions to CLAUDE.md and/or AGENTS.md if they exist.
-
-    ## Behavior
-
-    - Checks both files (not all users use Claude Code)
-    - Idempotent - won't duplicate if instructions already present
-    - No prompt - just does it if file exists
-
-    ## Rationale
-
-    Tighter integration with existing agent instruction files reduces friction for adoption.
-
-===
-id: D002
-type: decision
-topic: architecture
-oneliner: Store oneliner in .eng frontmatter
-created: 2026-01-31T00:00:00Z
-body: |
-    # Store oneliner in .eng frontmatter
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Store oneliner in .eng frontmatter
-
-    ## Rationale
-
-    Enables rebuild command to reconstruct index without losing oneliners
-
-===
-id: L001
-type: lesson
-topic: architecture
-severity: high
-oneliner: Rebuild loses oneliners if not stored in frontmatter
-created: 2026-01-31T00:00:00Z
-body: |
-    # Rebuild loses oneliners if not stored in frontmatter
-
-    ## Details
-
-    (Add details here)
-
-===
-id: D010
-type: decision
-topic: architecture
-oneliner: Remove status field from decisions
-created: 2026-02-01T19:00:49+01:00
-body: |-
-    # Remove status field
-
-    ## Decision
-
-    Remove the `status: active` field from decision frontmatter.
-
-    ## Rationale
-
-    - Agents rarely update it
-    - Over-engineering for current use case
-    - Can be added back later if needed
-
-===
-id: D005
-type: decision
-topic: branding
-oneliner: Name the tool Dory after Finding Nemo character
-created: 2026-01-31T00:00:00Z
-body: |
-    # Name the tool Dory after Finding Nemo character
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Name the tool Dory after Finding Nemo character
-
-    ## Rationale
-
-    Ironic - the forgetful fish helps agents remember. Memorable and fun.
-
-===
-id: L007
-type: lesson
-topic: storage
-severity: normal
-oneliner: Emojis and special Unicode characters force YAML quoted style
-created: 2026-02-02T12:21:49.796364+01:00
-body: "# YAML Literal Style Limitation\n\n## Problem\nWhen body content contains emojis (e.g., \U0001F389) or other special Unicode characters, yaml.v3 cannot use literal block style and falls back to quoted style with Unicode escapes.\n\nExample:\n- Input: `## Success \U0001F389`\n- Stored as: `\"## Success \\U0001F389\"`\n\n## Impact\n- Raw knowledge.dory file is harder to read\n- Content is still valid and displays correctly via `dory show`\n\n## Potential Fixes\n1. Strip emojis before storing (lossy)\n2. Custom YAML encoder for body field\n3. Accept as limitation (current)\n\n## Workaround\nContent with emojis works correctly when retrieved. Only the raw file readability is affected."
 

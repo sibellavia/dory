@@ -56,19 +56,29 @@ For example: `dory import --help`, `dory learn --help`, `dory status --help`
 
 ## Examples
 
-### Lessons
+### Quick entries (no body)
 ```bash
-# Bug discovery
+# Lesson - something learned
 dory learn "DHCP leases expire during long deployments" --topic networking --severity high
 
-# Gotcha
-dory learn "Must escape quotes in YAML heredocs" --topic yaml --severity normal
+# Decision - a choice made
+dory decide "Use PostgreSQL over SQLite" --topic database
 
-# With reference to related decision
-dory learn "Config reload requires service restart" --topic deployment --severity high --refs D003
+# Pattern - a convention
+dory pattern "All API endpoints return {data, error} envelope" --domain api
 
-# Detailed lesson with body
-dory learn "Race condition in queue processor" --topic backend --severity critical --body "# Race Condition
+# With references
+dory learn "Config reload requires restart" --topic deployment --refs D003
+```
+
+### Entries with body content
+
+Use heredoc with `--body -` for natural markdown without escaping:
+
+```bash
+# Lesson with detailed body
+cat << 'EOF' | dory learn "Race condition in queue processor" --topic backend --severity critical --body -
+# Race Condition
 
 ## Symptom
 Jobs processed twice under high load.
@@ -77,16 +87,12 @@ Jobs processed twice under high load.
 Worker threads not properly synchronized.
 
 ## Fix
-Added mutex lock around dequeue operation."
-```
+Added mutex lock around dequeue operation.
+EOF
 
-### Decisions
-```bash
-# Architecture choice
-dory decide "Use PostgreSQL over SQLite" --topic database
-
-# With rationale in body
-dory decide "Separate API and worker processes" --topic architecture --body "# Separate Processes
+# Decision with rationale
+cat << 'EOF' | dory decide "Separate API and worker processes" --topic architecture --body -
+# Separate Processes
 
 ## Context
 Single process was hitting memory limits.
@@ -97,28 +103,19 @@ Split into API server and background worker.
 ## Rationale
 - Independent scaling
 - Crash isolation
-- Clearer resource limits"
+- Clearer resource limits
+EOF
 
-# Referencing a lesson that led to this decision
-dory decide "Use static IPs for control plane" --topic networking --refs L001
-```
-
-### Patterns
-```bash
-# Convention
-dory pattern "All API endpoints return {data, error} envelope" --domain api
-
-# Pattern that implements a decision
-dory pattern "Use context.WithTimeout for all DB queries" --domain database --refs D005
-
-# With implementation details
-dory pattern "Database migrations use timestamped filenames" --domain database --body "# Migration Naming
+# Pattern with implementation details
+cat << 'EOF' | dory pattern "Database migrations use timestamped filenames" --domain database --body -
+# Migration Naming
 
 Format: YYYYMMDD_HHMMSS_description.sql
 
 Example: 20260201_143052_add_users_table.sql
 
-Run with: ./scripts/migrate.sh"
+Run with: ./scripts/migrate.sh
+EOF
 ```
 
 ### Linking with Refs
