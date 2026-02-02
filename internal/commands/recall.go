@@ -18,7 +18,8 @@ var recallCmd = &cobra.Command{
 		RequireStore()
 
 		topic := args[0]
-		s := store.New("")
+		s := store.NewSingle("")
+		defer s.Close()
 
 		format := GetOutputFormat(cmd)
 

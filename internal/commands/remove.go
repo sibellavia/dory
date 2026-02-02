@@ -21,7 +21,8 @@ var removeCmd = &cobra.Command{
 		id := args[0]
 		force, _ := cmd.Flags().GetBool("force")
 
-		s := store.New("")
+		s := store.NewSingle("")
+		defer s.Close()
 
 		// Show item before removal
 		content, err := s.Show(id)

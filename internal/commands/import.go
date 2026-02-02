@@ -77,7 +77,8 @@ Examples:
 			severity = models.SeverityNormal
 		}
 
-		s := store.New("")
+		s := store.NewSingle("")
+		defer s.Close()
 
 		if split {
 			items := splitNumberedItems(body)
@@ -110,7 +111,7 @@ func init() {
 	RootCmd.AddCommand(importCmd)
 }
 
-func importItem(s *store.Store, itemType, oneliner, body, topic, domain string, severity models.Severity, refs []string) (string, error) {
+func importItem(s *store.SingleStore, itemType, oneliner, body, topic, domain string, severity models.Severity, refs []string) (string, error) {
 	switch itemType {
 	case "lesson":
 		if topic == "" {

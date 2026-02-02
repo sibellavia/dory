@@ -37,9 +37,10 @@ var initCmd = &cobra.Command{
 			project = filepath.Base(cwd)
 		}
 
-		s := store.New("")
+		s := store.NewSingle("")
 		err := s.Init(project, description)
 		CheckError(err)
+		s.Close()
 
 		// Auto-append to CLAUDE.md and/or AGENTS.md if they exist
 		agentFiles := []string{"CLAUDE.md", "AGENTS.md"}

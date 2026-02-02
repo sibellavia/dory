@@ -31,7 +31,8 @@ var listCmd = &cobra.Command{
 			until, _ = time.Parse("2006-01-02", untilStr)
 		}
 
-		s := store.New("")
+		s := store.NewSingle("")
+		defer s.Close()
 		items, err := s.List(topic, itemType, severity, since, until)
 		CheckError(err)
 

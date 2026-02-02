@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
+	"time"
 
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
@@ -27,7 +27,8 @@ Examples:
 		topic, _ := cmd.Flags().GetString("topic")
 		appendFile, _ := cmd.Flags().GetString("append")
 
-		s := store.New("")
+		s := store.NewSingle("")
+		defer s.Close()
 
 		var output string
 		var err error
@@ -60,8 +61,8 @@ Examples:
 	},
 }
 
-func exportAll(s *store.Store) (string, error) {
-	index, err := s.LoadIndex()
+func exportAll(s *store.SingleStore) (string, error) {
+	items, err := s.List("", "", "", time.Time{}, time.Time{})
 	if err != nil {
 		return "", err
 	}
@@ -69,54 +70,42 @@ func exportAll(s *store.Store) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString("## Project Knowledge\n\n")
 
-	// Collect all IDs
-	var ids []string
-	for id := range index.Lessons {
-		ids = append(ids, id)
-	}
-	for id := range index.Decisions {
-		ids = append(ids, id)
-	}
-	for id := range index.Patterns {
-		ids = append(ids, id)
-	}
-	sort.Strings(ids)
-
 	// Group by type
-	var lessons, decisions, patterns []string
-	for _, id := range ids {
-		if strings.HasPrefix(id, "L") {
-			lessons = append(lessons, id)
-		} else if strings.HasPrefix(id, "D") {
-			decisions = append(decisions, id)
-		} else if strings.HasPrefix(id, "P") {
-			patterns = append(patterns, id)
+	var lessons, decisions, patterns []store.ListItem
+	for _, item := range items {
+		switch item.Type {
+		case "lesson":
+			lessons = append(lessons, item)
+		case "decision":
+			decisions = append(decisions, item)
+		case "pattern":
+			patterns = append(patterns, item)
 		}
 	}
 
 	if len(lessons) > 0 {
 		buf.WriteString("### Lessons\n\n")
-		for _, id := range lessons {
-			entry := index.Lessons[id]
-			buf.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", id, entry.Severity, entry.Oneliner))
+		sort.Slice(lessons, func(i, j int) bool { return lessons[i].ID < lessons[j].ID })
+		for _, item := range lessons {
+			buf.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", item.ID, item.Severity, item.Oneliner))
 		}
 		buf.WriteString("\n")
 	}
 
 	if len(decisions) > 0 {
 		buf.WriteString("### Decisions\n\n")
-		for _, id := range decisions {
-			entry := index.Decisions[id]
-			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, entry.Oneliner))
+		sort.Slice(decisions, func(i, j int) bool { return decisions[i].ID < decisions[j].ID })
+		for _, item := range decisions {
+			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", item.ID, item.Oneliner))
 		}
 		buf.WriteString("\n")
 	}
 
 	if len(patterns) > 0 {
 		buf.WriteString("### Patterns\n\n")
-		for _, id := range patterns {
-			entry := index.Patterns[id]
-			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, entry.Oneliner))
+		sort.Slice(patterns, func(i, j int) bool { return patterns[i].ID < patterns[j].ID })
+		for _, item := range patterns {
+			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", item.ID, item.Oneliner))
 		}
 		buf.WriteString("\n")
 	}
@@ -124,8 +113,8 @@ func exportAll(s *store.Store) (string, error) {
 	return buf.String(), nil
 }
 
-func exportByTopic(s *store.Store, topic string) (string, error) {
-	index, err := s.LoadIndex()
+func exportByTopic(s *store.SingleStore, topic string) (string, error) {
+	items, err := s.List(topic, "", "", time.Time{}, time.Time{})
 	if err != nil {
 		return "", err
 	}
@@ -133,53 +122,42 @@ func exportByTopic(s *store.Store, topic string) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("## Knowledge: %s\n\n", topic))
 
-	// Lessons for topic
-	var lessons []string
-	for id, entry := range index.Lessons {
-		if entry.Topic == topic {
-			lessons = append(lessons, id)
+	// Group by type
+	var lessons, decisions, patterns []store.ListItem
+	for _, item := range items {
+		switch item.Type {
+		case "lesson":
+			lessons = append(lessons, item)
+		case "decision":
+			decisions = append(decisions, item)
+		case "pattern":
+			patterns = append(patterns, item)
 		}
 	}
-	sort.Strings(lessons)
+
 	if len(lessons) > 0 {
 		buf.WriteString("### Lessons\n\n")
-		for _, id := range lessons {
-			entry := index.Lessons[id]
-			buf.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", id, entry.Severity, entry.Oneliner))
+		sort.Slice(lessons, func(i, j int) bool { return lessons[i].ID < lessons[j].ID })
+		for _, item := range lessons {
+			buf.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", item.ID, item.Severity, item.Oneliner))
 		}
 		buf.WriteString("\n")
 	}
 
-	// Decisions for topic
-	var decisions []string
-	for id, entry := range index.Decisions {
-		if entry.Topic == topic {
-			decisions = append(decisions, id)
-		}
-	}
-	sort.Strings(decisions)
 	if len(decisions) > 0 {
 		buf.WriteString("### Decisions\n\n")
-		for _, id := range decisions {
-			entry := index.Decisions[id]
-			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, entry.Oneliner))
+		sort.Slice(decisions, func(i, j int) bool { return decisions[i].ID < decisions[j].ID })
+		for _, item := range decisions {
+			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", item.ID, item.Oneliner))
 		}
 		buf.WriteString("\n")
 	}
 
-	// Patterns for topic (domain)
-	var patterns []string
-	for id, entry := range index.Patterns {
-		if entry.Domain == topic {
-			patterns = append(patterns, id)
-		}
-	}
-	sort.Strings(patterns)
 	if len(patterns) > 0 {
 		buf.WriteString("### Patterns\n\n")
-		for _, id := range patterns {
-			entry := index.Patterns[id]
-			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, entry.Oneliner))
+		sort.Slice(patterns, func(i, j int) bool { return patterns[i].ID < patterns[j].ID })
+		for _, item := range patterns {
+			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", item.ID, item.Oneliner))
 		}
 		buf.WriteString("\n")
 	}
@@ -187,22 +165,30 @@ func exportByTopic(s *store.Store, topic string) (string, error) {
 	return buf.String(), nil
 }
 
-func exportItems(s *store.Store, ids []string) (string, error) {
-	index, err := s.LoadIndex()
+func exportItems(s *store.SingleStore, ids []string) (string, error) {
+	// Get all items and filter
+	allItems, err := s.List("", "", "", time.Time{}, time.Time{})
 	if err != nil {
 		return "", err
+	}
+
+	// Build lookup map
+	itemMap := make(map[string]store.ListItem)
+	for _, item := range allItems {
+		itemMap[item.ID] = item
 	}
 
 	var buf bytes.Buffer
 	buf.WriteString("## Project Knowledge\n\n")
 
 	for _, id := range ids {
-		if entry, ok := index.Lessons[id]; ok {
-			buf.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", id, entry.Severity, entry.Oneliner))
-		} else if entry, ok := index.Decisions[id]; ok {
-			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, entry.Oneliner))
-		} else if entry, ok := index.Patterns[id]; ok {
-			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, entry.Oneliner))
+		if item, ok := itemMap[id]; ok {
+			switch item.Type {
+			case "lesson":
+				buf.WriteString(fmt.Sprintf("- **%s** [%s]: %s\n", id, item.Severity, item.Oneliner))
+			default:
+				buf.WriteString(fmt.Sprintf("- **%s**: %s\n", id, item.Oneliner))
+			}
 		} else {
 			buf.WriteString(fmt.Sprintf("- **%s**: (not found)\n", id))
 		}

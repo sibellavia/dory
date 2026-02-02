@@ -37,7 +37,8 @@ Use --body - to read markdown content from stdin:
 			os.Exit(1)
 		}
 
-		s := store.New("")
+		s := store.NewSingle("")
+		defer s.Close()
 
 		var oneliner, summary, body string
 

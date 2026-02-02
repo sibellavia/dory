@@ -1,93 +1,9 @@
-version: 1
 project: dory
-description: Knowledge memory CLI for coding agents
-lessons:
-    L001:
-        oneliner: Rebuild loses oneliners if not stored in frontmatter
-        topic: architecture
-        severity: high
-        created: 2026-01-31T00:00:00Z
-    L002:
-        oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
-        topic: git
-        severity: normal
-        created: 2026-01-31T00:00:00Z
-    L003:
-        oneliner: Document store for AI agents - explore single-file, text-based, queryable format
-        topic: architecture
-        severity: critical
-        created: 2026-02-01T22:02:21.714518+01:00
-decisions:
-    D001:
-        oneliner: Use Cobra for CLI framework
-        topic: architecture
-        created: 2026-01-31T00:00:00Z
-    D002:
-        oneliner: Store oneliner in .eng frontmatter
-        topic: architecture
-        created: 2026-01-31T00:00:00Z
-    D003:
-        oneliner: YAML frontmatter + Markdown body for .eng files
-        topic: file-format
-        created: 2026-01-31T00:00:00Z
-    D004:
-        oneliner: Separate index.yaml from knowledge files
-        topic: architecture
-        created: 2026-01-31T00:00:00Z
-    D005:
-        oneliner: Name the tool Dory after Finding Nemo character
-        topic: branding
-        created: 2026-01-31T00:00:00Z
-    D006:
-        oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
-        topic: architecture
-        created: 2026-02-01T00:00:00Z
-    D007:
-        oneliner: Single index.yaml as source of truth
-        topic: architecture
-        created: 2026-02-01T18:51:35.992891+01:00
-    D008:
-        oneliner: Auto-append dory instructions on init
-        topic: integration
-        created: 2026-02-01T18:52:16.142234+01:00
-    D009:
-        oneliner: Full RFC3339 timestamps in .eng files
-        topic: architecture
-        created: 2026-02-01T19:00:31.628574+01:00
-    D010:
-        oneliner: Remove status field from decisions
-        topic: architecture
-        created: 2026-02-01T19:00:49.114491+01:00
-patterns:
-    P001:
-        oneliner: All commands support --json and --yaml output flags
-        domain: cli
-        created: 2026-01-31T00:00:00Z
-    P002:
-        oneliner: Use --body flag or stdin for programmatic content input
-        domain: cli
-        created: 2026-01-31T00:00:00Z
-    P003:
-        oneliner: Editor mode for humans, --body flag for agents
-        domain: cli
-        created: 2026-02-01T18:52:01.000577+01:00
-topics:
-    - architecture
-    - git
-    - file-format
-    - integration
-    - branding
-    - cli
-edges:
-    D007:
-        - D004
-    P003:
-        - P002
 state:
-    last_updated: 2026-02-01T22:03:26.480257+01:00
     goal: Build dory - knowledge store for coding agents
-    progress: 'v0.3.0 released: date filtering, import with split, version flag'
+    progress: Single-file format implemented and migrated (D011, L005)
     next:
-        - Design document store format for agents (L003)
-        - Evaluate YAML stream vs custom DSL
-        - Prototype single-file storage with embedded index
+        - Add 'dory related <id>' command for ref/edge queries
+        - Release v0.4.0 with new format
+        - Update documentation for new format
+    last_updated: "2026-02-02T10:58:56+01:00"
