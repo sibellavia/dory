@@ -1,96 +1,5 @@
 DORY:v1
 ===
-id: D004
-type: decision
-topic: architecture
-oneliner: Separate index.yaml from knowledge files
-created: 2026-01-31T00:00:00Z
-body: |
-    # Separate index.yaml from knowledge files
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Separate index.yaml from knowledge files
-
-    ## Rationale
-
-    Enables loading lightweight index at session start without reading all content
-
-===
-id: D007
-type: decision
-topic: architecture
-oneliner: Single index.yaml as source of truth
-created: 2026-02-01T00:00:00Z
-refs:
-    - D004
-body: |-
-    # Single index.yaml as source of truth
-
-    ## Context
-
-    Previously had separate files: index.yaml, state.yaml, and BRIEF.md (auto-generated).
-    This caused duplication and sync issues - editing state.yaml required rebuilding BRIEF.md.
-
-    ## Decision
-
-    Merge state into index.yaml. Remove state.yaml and BRIEF.md entirely.
-    Agents read `cat .dory/index.yaml` directly.
-
-    ## Rationale
-
-    - Single source of truth
-    - No regeneration issues
-    - Simpler mental model
-    - Better DX - edits just work
-
-===
-id: D010
-type: decision
-topic: architecture
-oneliner: Remove status field from decisions
-created: 2026-02-01T19:00:49+01:00
-body: |-
-    # Remove status field
-
-    ## Decision
-
-    Remove the `status: active` field from decision frontmatter.
-
-    ## Rationale
-
-    - Agents rarely update it
-    - Over-engineering for current use case
-    - Can be added back later if needed
-
-===
-id: P003
-type: pattern
-domain: cli
-oneliner: Editor mode for humans, --body flag for agents
-created: 2026-02-01T00:00:00Z
-refs:
-    - P002
-body: |-
-    # Dual Interface Pattern
-
-    ## For Humans
-
-    - Omit arguments to open $EDITOR with template
-    - `dory learn --topic foo` opens editor
-    - `dory edit D001` edits existing item
-
-    ## For Agents
-
-    - Use `--body "content"` flag for inline content
-    - Use `--body -` to pipe from stdin
-    - Programmatic, non-interactive
-
-===
 id: P001
 type: pattern
 domain: cli
@@ -106,297 +15,6 @@ body: |
     ## Implementation
 
     (Add implementation details here)
-
-===
-id: D005
-type: decision
-topic: branding
-oneliner: Name the tool Dory after Finding Nemo character
-created: 2026-01-31T00:00:00Z
-body: |
-    # Name the tool Dory after Finding Nemo character
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Name the tool Dory after Finding Nemo character
-
-    ## Rationale
-
-    Ironic - the forgetful fish helps agents remember. Memorable and fun.
-
-===
-id: D008
-type: decision
-topic: integration
-oneliner: Auto-append dory instructions on init
-created: 2026-02-01T00:00:00Z
-body: |-
-    # Auto-append on init
-
-    ## Decision
-
-    When `dory init` runs, automatically append dory usage instructions to CLAUDE.md and/or AGENTS.md if they exist.
-
-    ## Behavior
-
-    - Checks both files (not all users use Claude Code)
-    - Idempotent - won't duplicate if instructions already present
-    - No prompt - just does it if file exists
-
-    ## Rationale
-
-    Tighter integration with existing agent instruction files reduces friction for adoption.
-
-===
-id: D011
-type: decision
-topic: architecture
-oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
-created: 2026-02-02T10:55:51.887336+01:00
-body: |
-    # Single-File Storage Format
-
-    ## Context
-    The original multi-file format (one .eng file per item) didn't scale well:
-    - 500 items = 501 files
-    - Git overhead with many small files
-    - Slower writes (file creation overhead)
-
-    ## Decision
-    Adopt a two-file format:
-    - `knowledge.dory`: Append-only content file with YAML entries separated by `===`
-    - `index.yaml`: Project metadata, state, and deleted IDs only
-
-    ## Key Design Choices
-    - No persistent offsets (rebuild index on open for corruption resistance)
-    - Append-only writes (no mid-file modifications)
-    - In-memory index with O(1) random access
-    - Deleted items tracked in index until compact
-
-    ## Benchmark Results
-    | Metric | Improvement |
-    |--------|-------------|
-    | Write speed | 16-180x faster |
-    | List speed | 18-36x faster |
-    | File count | O(1) vs O(n) |
-    | Open time | 2x slower (acceptable: 7ms vs 4ms at 500 items)
-
-    ## Trade-offs Accepted
-    - Slightly slower opens (full file scan)
-    - Less crash-safe (no fsync per write)
-    - Single growing file vs many small files
-
-===
-id: P002
-type: pattern
-domain: cli
-oneliner: Use --body flag or stdin for programmatic content input
-created: 2026-01-31T00:00:00Z
-body: |
-    # Use --body flag or stdin for programmatic content input
-
-    ## Pattern
-
-    Use --body flag or stdin for programmatic content input
-
-    ## Implementation
-
-    (Add implementation details here)
-
-===
-id: D002
-type: decision
-topic: architecture
-oneliner: Store oneliner in .eng frontmatter
-created: 2026-01-31T00:00:00Z
-body: |
-    # Store oneliner in .eng frontmatter
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Store oneliner in .eng frontmatter
-
-    ## Rationale
-
-    Enables rebuild command to reconstruct index without losing oneliners
-
-===
-id: D001
-type: decision
-topic: architecture
-oneliner: Use Cobra for CLI framework
-created: 2026-01-31T00:00:00Z
-body: |
-    # Use Cobra for CLI framework
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Use Cobra for CLI framework
-
-    ## Rationale
-
-    Industry standard for Go CLIs, provides subcommands, flags, and help generation
-
-===
-id: D003
-type: decision
-topic: file-format
-oneliner: YAML frontmatter + Markdown body for .eng files
-created: 2026-01-31T00:00:00Z
-body: |
-    # YAML frontmatter + Markdown body for .eng files
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    YAML frontmatter + Markdown body for .eng files
-
-    ## Rationale
-
-    Machine-readable metadata with human-readable content, similar to Jekyll/Hugo
-
-===
-id: L007
-type: lesson
-topic: cli
-severity: normal
-oneliner: dory init should auto-create DORY.md for agent guidance
-created: 2026-02-02T11:33:50.117023+01:00
-body: |-
-    # Auto-create DORY.md
-
-    On `dory init`, automatically create DORY.md if it doesn't exist.
-
-    This provides immediate guidance for agents on how to use dory in the project.
-
-    Template includes:
-    - Session start instructions
-    - Recording commands (learn, decide, pattern)
-    - Retrieval commands (list, show, recall)
-    - Status updates
-    - Maintenance commands
-
-===
-id: L001
-type: lesson
-topic: architecture
-severity: high
-oneliner: Rebuild loses oneliners if not stored in frontmatter
-created: 2026-01-31T00:00:00Z
-body: |
-    # Rebuild loses oneliners if not stored in frontmatter
-
-    ## Details
-
-    (Add details here)
-
-===
-id: L005
-type: lesson
-topic: architecture
-severity: high
-oneliner: Scan-on-open beats persistent offsets for corruption resistance
-created: 2026-02-02T10:56:03.695826+01:00
-body: |
-    # Scan-on-Open Index Strategy
-
-    ## The Problem
-    Storing byte offsets in the index file creates fragility:
-    - Manual file edits corrupt the index
-    - Any byte shift invalidates all subsequent offsets
-    - Recovery requires full rebuild anyway
-
-    ## The Solution
-    Don't persist offsets at all. On file open:
-    1. Scan the knowledge file sequentially
-    2. Build in-memory index with offsets
-    3. Use in-memory offsets for O(1) random access
-
-    ## Performance Impact
-    - Open time: ~7ms for 500 items (acceptable)
-    - Random access: Still O(1) via in-memory map
-    - List operations: Faster (pure in-memory)
-
-    ## Lesson
-    Prefer robustness over micro-optimization. The 'slow' scan is imperceptible (<10ms), but corruption resistance is invaluable.
-
-===
-id: D006
-type: decision
-topic: architecture
-oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
-created: 2026-02-01T00:00:00Z
-body: |
-    # Refs + Edges Architecture
-
-    ## Decision
-
-    Use both refs (per-item) and edges (centralized) for knowledge relationships:
-    - `refs` field in .eng frontmatter is the source of truth
-    - `edges` section in index.yaml is auto-generated for quick agent access
-
-    ## Implementation
-
-    1. Add `refs: [ID1, ID2]` field to knowledge frontmatter
-    2. Add `--refs` flag to learn/decide/pattern commands
-    3. Add `edges` section to index.yaml
-    4. Rebuild command regenerates edges from refs
-
-    ## Example
-
-    ```yaml
-    # D002.eng frontmatter
-    refs: [L001]
-
-    # index.yaml
-    edges:
-      L001 -> D002
-    ```
-
-    ## Future Considerations
-
-    - Typed relationships: `refs: {led_to: [L001], relates_to: [P001]}`
-    - Bidirectional display in queries
-    - Graph visualization
-
-===
-id: L006
-type: lesson
-topic: performance
-severity: normal
-oneliner: Removing fsync per-write gave 180x speedup - sync on Close() is sufficient
-created: 2026-02-02T11:28:27.762407+01:00
-body: |-
-    # Fsync Trade-off
-
-    ## Discovery
-    Initial single-file implementation was slower than multi-file due to `Sync()` after every append.
-
-    ## Benchmark (500 items)
-    - With Sync(): 1.9s
-    - Without Sync(): 10ms (180x faster)
-
-    ## Solution
-    - Remove `Sync()` from `Append()`
-    - Add `Sync()` to `Close()`
-
-    ## Trade-off
-    May lose last few writes on crash. Acceptable for a knowledge store - data can be re-learned.
 
 ===
 id: L004
@@ -441,6 +59,100 @@ body: |-
     - Log systems: recent vs archived
 
 ===
+id: D011
+type: decision
+topic: architecture
+oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
+created: 2026-02-02T10:55:51.887336+01:00
+body: |
+    # Single-File Storage Format
+
+    ## Context
+    The original multi-file format (one .eng file per item) didn't scale well:
+    - 500 items = 501 files
+    - Git overhead with many small files
+    - Slower writes (file creation overhead)
+
+    ## Decision
+    Adopt a two-file format:
+    - `knowledge.dory`: Append-only content file with YAML entries separated by `===`
+    - `index.yaml`: Project metadata, state, and deleted IDs only
+
+    ## Key Design Choices
+    - No persistent offsets (rebuild index on open for corruption resistance)
+    - Append-only writes (no mid-file modifications)
+    - In-memory index with O(1) random access
+    - Deleted items tracked in index until compact
+
+    ## Benchmark Results
+    | Metric | Improvement |
+    |--------|-------------|
+    | Write speed | 16-180x faster |
+    | List speed | 18-36x faster |
+    | File count | O(1) vs O(n) |
+    | Open time | 2x slower (acceptable: 7ms vs 4ms at 500 items)
+
+    ## Trade-offs Accepted
+    - Slightly slower opens (full file scan)
+    - Less crash-safe (no fsync per write)
+    - Single growing file vs many small files
+
+===
+id: P003
+type: pattern
+domain: cli
+oneliner: Editor mode for humans, --body flag for agents
+created: 2026-02-01T00:00:00Z
+refs:
+    - P002
+body: |-
+    # Dual Interface Pattern
+
+    ## For Humans
+
+    - Omit arguments to open $EDITOR with template
+    - `dory learn --topic foo` opens editor
+    - `dory edit D001` edits existing item
+
+    ## For Agents
+
+    - Use `--body "content"` flag for inline content
+    - Use `--body -` to pipe from stdin
+    - Programmatic, non-interactive
+
+===
+id: L003
+type: lesson
+topic: architecture
+severity: critical
+oneliner: Document store for AI agents - explore single-file, text-based, queryable format
+created: 2026-02-01T22:02:21+01:00
+body: |-
+    # Document Store for AI Agents
+
+    ## Problem
+    Current file-per-item approach doesn't scale. Need a format that is:
+    - Single file (or few files)
+    - Text-based, human/agent readable
+    - Queryable with index support
+    - Git-friendly
+
+    ## Candidates
+    - YAML stream (--- separators)
+    - JSONL with index header
+    - Custom DSL optimized for agents
+    - Org-mode / outline style
+
+    ## Requirements
+    - Agents can cat/read directly
+    - Supports fast lookup by ID
+    - Greppable content
+    - Append-friendly for git diffs
+
+    ## Priority
+    High - could be the core innovation of Dory.
+
+===
 id: D009
 type: decision
 topic: architecture
@@ -474,34 +186,286 @@ body: |
     (Add details here)
 
 ===
-id: L003
+id: L005
 type: lesson
 topic: architecture
+severity: high
+oneliner: Scan-on-open beats persistent offsets for corruption resistance
+created: 2026-02-02T10:56:03.695826+01:00
+body: |
+    # Scan-on-Open Index Strategy
+
+    ## The Problem
+    Storing byte offsets in the index file creates fragility:
+    - Manual file edits corrupt the index
+    - Any byte shift invalidates all subsequent offsets
+    - Recovery requires full rebuild anyway
+
+    ## The Solution
+    Don't persist offsets at all. On file open:
+    1. Scan the knowledge file sequentially
+    2. Build in-memory index with offsets
+    3. Use in-memory offsets for O(1) random access
+
+    ## Performance Impact
+    - Open time: ~7ms for 500 items (acceptable)
+    - Random access: Still O(1) via in-memory map
+    - List operations: Faster (pure in-memory)
+
+    ## Lesson
+    Prefer robustness over micro-optimization. The 'slow' scan is imperceptible (<10ms), but corruption resistance is invaluable.
+
+===
+id: D004
+type: decision
+topic: architecture
+oneliner: Separate index.yaml from knowledge files
+created: 2026-01-31T00:00:00Z
+body: |
+    # Separate index.yaml from knowledge files
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    Separate index.yaml from knowledge files
+
+    ## Rationale
+
+    Enables loading lightweight index at session start without reading all content
+
+===
+id: D001
+type: decision
+topic: architecture
+oneliner: Use Cobra for CLI framework
+created: 2026-01-31T00:00:00Z
+body: |
+    # Use Cobra for CLI framework
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    Use Cobra for CLI framework
+
+    ## Rationale
+
+    Industry standard for Go CLIs, provides subcommands, flags, and help generation
+
+===
+id: L006
+type: lesson
+topic: performance
 severity: critical
-oneliner: Document store for AI agents - explore single-file, text-based, queryable format
-created: 2026-02-01T22:02:21+01:00
+oneliner: Test lesson for edit
+created: 2026-02-02T12:06:59.204086+01:00
+body: Test body content
+
+===
+id: D003
+type: decision
+topic: file-format
+oneliner: YAML frontmatter + Markdown body for .eng files
+created: 2026-01-31T00:00:00Z
+body: |
+    # YAML frontmatter + Markdown body for .eng files
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    YAML frontmatter + Markdown body for .eng files
+
+    ## Rationale
+
+    Machine-readable metadata with human-readable content, similar to Jekyll/Hugo
+
+===
+id: D006
+type: decision
+topic: architecture
+oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
+created: 2026-02-01T00:00:00Z
+body: |
+    # Refs + Edges Architecture
+
+    ## Decision
+
+    Use both refs (per-item) and edges (centralized) for knowledge relationships:
+    - `refs` field in .eng frontmatter is the source of truth
+    - `edges` section in index.yaml is auto-generated for quick agent access
+
+    ## Implementation
+
+    1. Add `refs: [ID1, ID2]` field to knowledge frontmatter
+    2. Add `--refs` flag to learn/decide/pattern commands
+    3. Add `edges` section to index.yaml
+    4. Rebuild command regenerates edges from refs
+
+    ## Example
+
+    ```yaml
+    # D002.eng frontmatter
+    refs: [L001]
+
+    # index.yaml
+    edges:
+      L001 -> D002
+    ```
+
+    ## Future Considerations
+
+    - Typed relationships: `refs: {led_to: [L001], relates_to: [P001]}`
+    - Bidirectional display in queries
+    - Graph visualization
+
+===
+id: P002
+type: pattern
+domain: cli
+oneliner: Use --body flag or stdin for programmatic content input
+created: 2026-01-31T00:00:00Z
+body: |
+    # Use --body flag or stdin for programmatic content input
+
+    ## Pattern
+
+    Use --body flag or stdin for programmatic content input
+
+    ## Implementation
+
+    (Add implementation details here)
+
+===
+id: D007
+type: decision
+topic: architecture
+oneliner: Single index.yaml as source of truth
+created: 2026-02-01T00:00:00Z
+refs:
+    - D004
 body: |-
-    # Document Store for AI Agents
+    # Single index.yaml as source of truth
 
-    ## Problem
-    Current file-per-item approach doesn't scale. Need a format that is:
-    - Single file (or few files)
-    - Text-based, human/agent readable
-    - Queryable with index support
-    - Git-friendly
+    ## Context
 
-    ## Candidates
-    - YAML stream (--- separators)
-    - JSONL with index header
-    - Custom DSL optimized for agents
-    - Org-mode / outline style
+    Previously had separate files: index.yaml, state.yaml, and BRIEF.md (auto-generated).
+    This caused duplication and sync issues - editing state.yaml required rebuilding BRIEF.md.
 
-    ## Requirements
-    - Agents can cat/read directly
-    - Supports fast lookup by ID
-    - Greppable content
-    - Append-friendly for git diffs
+    ## Decision
 
-    ## Priority
-    High - could be the core innovation of Dory.
+    Merge state into index.yaml. Remove state.yaml and BRIEF.md entirely.
+    Agents read `cat .dory/index.yaml` directly.
+
+    ## Rationale
+
+    - Single source of truth
+    - No regeneration issues
+    - Simpler mental model
+    - Better DX - edits just work
+
+===
+id: D008
+type: decision
+topic: integration
+oneliner: Auto-append dory instructions on init
+created: 2026-02-01T00:00:00Z
+body: |-
+    # Auto-append on init
+
+    ## Decision
+
+    When `dory init` runs, automatically append dory usage instructions to CLAUDE.md and/or AGENTS.md if they exist.
+
+    ## Behavior
+
+    - Checks both files (not all users use Claude Code)
+    - Idempotent - won't duplicate if instructions already present
+    - No prompt - just does it if file exists
+
+    ## Rationale
+
+    Tighter integration with existing agent instruction files reduces friction for adoption.
+
+===
+id: D002
+type: decision
+topic: architecture
+oneliner: Store oneliner in .eng frontmatter
+created: 2026-01-31T00:00:00Z
+body: |
+    # Store oneliner in .eng frontmatter
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    Store oneliner in .eng frontmatter
+
+    ## Rationale
+
+    Enables rebuild command to reconstruct index without losing oneliners
+
+===
+id: L001
+type: lesson
+topic: architecture
+severity: high
+oneliner: Rebuild loses oneliners if not stored in frontmatter
+created: 2026-01-31T00:00:00Z
+body: |
+    # Rebuild loses oneliners if not stored in frontmatter
+
+    ## Details
+
+    (Add details here)
+
+===
+id: D010
+type: decision
+topic: architecture
+oneliner: Remove status field from decisions
+created: 2026-02-01T19:00:49+01:00
+body: |-
+    # Remove status field
+
+    ## Decision
+
+    Remove the `status: active` field from decision frontmatter.
+
+    ## Rationale
+
+    - Agents rarely update it
+    - Over-engineering for current use case
+    - Can be added back later if needed
+
+===
+id: D005
+type: decision
+topic: branding
+oneliner: Name the tool Dory after Finding Nemo character
+created: 2026-01-31T00:00:00Z
+body: |
+    # Name the tool Dory after Finding Nemo character
+
+    ## Context
+
+    (Add context here)
+
+    ## Decision
+
+    Name the tool Dory after Finding Nemo character
+
+    ## Rationale
+
+    Ironic - the forgetful fish helps agents remember. Memorable and fun.
 
