@@ -1080,3 +1080,29 @@ body: |
     - Token-efficient: returns what matters, not everything
     - Agents can immediately understand project context
 
+===
+id: D023
+type: decision
+topic: architecture
+oneliner: Defer graph export formats (DOT, Mermaid) to future work
+created: 2026-02-03T16:14:21.006613+01:00
+refs:
+    - D021
+body: |
+    # Defer Graph Export Formats
+
+    ## Context
+    Implemented terminal graph visualization for `dory graph`. Also added --dot and --mermaid export flags.
+
+    ## Decision
+    Remove export flags for now to keep the command focused. Terminal visualization is the priority.
+
+    ## Deferred Features
+    - `--dot` - Export to Graphviz DOT format
+    - `--mermaid` - Export to Mermaid diagram format
+
+    ## Rationale
+    - Terminal visualization covers the immediate need
+    - Export formats add complexity without current use case
+    - Can be re-added when needed
+
