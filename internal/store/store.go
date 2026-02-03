@@ -682,6 +682,124 @@ func (s *Store) Expand(id string, depth int) (*ExpandResult, error) {
 	return result, nil
 }
 
+// ContextResult contains smart context for agent session start
+type ContextResult struct {
+	Project  string        `json:"project" yaml:"project"`
+	State    *ContextState `json:"state,omitempty" yaml:"state,omitempty"`
+	Critical []ListItem    `json:"critical,omitempty" yaml:"critical,omitempty"`
+	Recent   []ListItem    `json:"recent,omitempty" yaml:"recent,omitempty"`
+	Topic    []ListItem    `json:"topic,omitempty" yaml:"topic,omitempty"`
+}
+
+// ContextState is session state for context output
+type ContextState struct {
+	Goal        string   `json:"goal,omitempty" yaml:"goal,omitempty"`
+	Progress    string   `json:"progress,omitempty" yaml:"progress,omitempty"`
+	Blocker     string   `json:"blocker,omitempty" yaml:"blocker,omitempty"`
+	Next        []string `json:"next,omitempty" yaml:"next,omitempty"`
+	LastUpdated string   `json:"last_updated,omitempty" yaml:"last_updated,omitempty"`
+}
+
+// Context returns smart context for agent session start
+func (s *Store) Context(topic string, recentDays int, full bool) (*ContextResult, error) {
+	if err := s.open(); err != nil {
+		return nil, err
+	}
+
+	result := &ContextResult{
+		Project: s.df.Index.Project,
+	}
+
+	// Include session state
+	if s.df.Index.State != nil {
+		st := s.df.Index.State
+		result.State = &ContextState{
+			Goal:        st.Goal,
+			Progress:    st.Progress,
+			Blocker:     st.Blocker,
+			Next:        st.Next,
+			LastUpdated: st.LastUpdated,
+		}
+	}
+
+	// Calculate recent cutoff
+	recentCutoff := time.Now().AddDate(0, 0, -recentDays)
+
+	entries := s.df.Entries()
+
+	// Collect items
+	var critical, recent, topicItems []ListItem
+
+	for id, entry := range entries {
+		item := ListItem{
+			ID:       id,
+			Type:     entry.Type,
+			Oneliner: entry.Oneliner,
+			Created:  entry.Created.Format("2006-01-02"),
+		}
+		if entry.Topic != "" {
+			item.Topic = entry.Topic
+		}
+		if entry.Domain != "" {
+			item.Domain = entry.Domain
+		}
+		if entry.Severity != "" {
+			item.Severity = models.Severity(entry.Severity)
+		}
+
+		// Critical/high severity lessons
+		if entry.Type == "lesson" && (entry.Severity == "critical" || entry.Severity == "high") {
+			critical = append(critical, item)
+		}
+
+		// Recent items
+		if entry.Created.After(recentCutoff) {
+			recent = append(recent, item)
+		}
+
+		// Topic filter
+		if topic != "" && (entry.Topic == topic || entry.Domain == topic) {
+			topicItems = append(topicItems, item)
+		}
+
+		// Full mode - add everything to recent
+		if full && !entry.Created.After(recentCutoff) {
+			recent = append(recent, item)
+		}
+	}
+
+	// Sort all slices by ID
+	sortItems := func(items []ListItem) {
+		sort.Slice(items, func(i, j int) bool {
+			return items[i].ID < items[j].ID
+		})
+	}
+
+	sortItems(critical)
+	sortItems(recent)
+	sortItems(topicItems)
+
+	// Deduplicate recent (remove items already in critical)
+	criticalIDs := make(map[string]bool)
+	for _, item := range critical {
+		criticalIDs[item.ID] = true
+	}
+	var dedupedRecent []ListItem
+	for _, item := range recent {
+		if !criticalIDs[item.ID] {
+			dedupedRecent = append(dedupedRecent, item)
+		}
+	}
+
+	result.Critical = critical
+	result.Recent = dedupedRecent
+	if topic != "" {
+		result.Topic = topicItems
+	}
+
+	return result, nil
+}
+
 // helper to ensure directory exists
 func ensureDir(path string) error {
 	return os.MkdirAll(path, 0755)

@@ -1,8 +1,8 @@
 project: dory
 state:
     goal: Improve agent experience with graph traversal and context commands
-    progress: Implemented dory refs, expand, and graph commands
+    progress: Implemented dory refs, expand, graph, and context commands
     next:
-        - Implement dory context command
         - Update README with new commands
-    last_updated: "2026-02-03T16:05:36+01:00"
+        - Commit changes
+    last_updated: "2026-02-03T16:21:12+01:00"
