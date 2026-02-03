@@ -610,6 +610,15 @@ func (df *DoryFile) Patterns() map[string]*MemoryEntry {
 	return result
 }
 
+// Entries returns all entries from the in-memory index.
+func (df *DoryFile) Entries() map[string]*MemoryEntry {
+	result := make(map[string]*MemoryEntry)
+	for id, entry := range df.entries {
+		result[id] = entry
+	}
+	return result
+}
+
 // DumpKnowledge returns the raw knowledge file content
 func (df *DoryFile) DumpKnowledge() (string, error) {
 	data, err := os.ReadFile(df.KnowledgePath)

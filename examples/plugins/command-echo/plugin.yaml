@@ -1,0 +1,7 @@
+name: command-echo
+api_version: v1
+version: 0.1.0
+description: Minimal command plugin example
+command: ["./plugin.sh"]
+capabilities:
+  commands: ["echo", "time"]

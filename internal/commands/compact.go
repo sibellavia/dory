@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/sibellavia/dory/internal/plugin"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
 )
@@ -25,6 +27,11 @@ This is safe to run at any time - no data will be lost.`,
 
 		err := s.Compact()
 		CheckError(err)
+
+		runPluginHooks(plugin.HookAfterCompact, map[string]interface{}{
+			"status":       "compacted",
+			"compacted_at": time.Now().Format(time.RFC3339),
+		})
 
 		result := map[string]string{
 			"status": "compacted",

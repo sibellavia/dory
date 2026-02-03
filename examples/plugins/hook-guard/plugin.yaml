@@ -1,0 +1,7 @@
+name: hook-guard
+api_version: v1
+version: 0.1.0
+description: Hook example that can block remove operations
+command: ["./plugin.sh"]
+capabilities:
+  hooks: ["before_remove", "after_create"]

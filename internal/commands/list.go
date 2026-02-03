@@ -12,7 +12,7 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all items",
-	Long:  `List all lessons, decisions, and patterns with optional filters.`,
+	Long:  `List all knowledge items (core and custom types) with optional filters.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
@@ -78,7 +78,7 @@ var listCmd = &cobra.Command{
 
 func init() {
 	listCmd.Flags().StringP("topic", "t", "", "Filter by topic")
-	listCmd.Flags().String("type", "", "Filter by type: lesson, decision, pattern")
+	listCmd.Flags().String("type", "", "Filter by type (e.g. lesson, decision, pattern, or plugin custom type)")
 	listCmd.Flags().StringP("severity", "s", "", "Filter by severity: critical, high, normal, low")
 	listCmd.Flags().String("since", "", "Show items created on or after date (YYYY-MM-DD)")
 	listCmd.Flags().String("until", "", "Show items created on or before date (YYYY-MM-DD)")

@@ -1,0 +1,7 @@
+name: incident-validator
+api_version: v1
+version: 0.1.0
+description: Validate incident custom type payloads
+command: ["./plugin.sh"]
+capabilities:
+  types: ["incident"]

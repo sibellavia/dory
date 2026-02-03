@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sibellavia/dory/internal/plugin"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/sibellavia/dory/templates"
 	"github.com/spf13/cobra"
@@ -69,8 +70,25 @@ Use --body - to read markdown content from stdin:
 			oneliner, summary, body = parseEditorContent(content)
 		}
 
+		runPluginHooks(plugin.HookBeforeCreate, map[string]interface{}{
+			"type":      "decision",
+			"oneliner":  oneliner,
+			"topic":     topic,
+			"rationale": rationale,
+			"refs":      refs,
+		})
+
 		id, err := s.Decide(oneliner, topic, rationale, summary, body, refs)
 		CheckError(err)
+
+		runPluginHooks(plugin.HookAfterCreate, map[string]interface{}{
+			"id":        id,
+			"type":      "decision",
+			"oneliner":  oneliner,
+			"topic":     topic,
+			"rationale": rationale,
+			"refs":      refs,
+		})
 
 		result := map[string]string{
 			"id":       id,

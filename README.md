@@ -146,6 +146,60 @@ dory reset         # Clear all knowledge (keep config)
 dory reset --full  # Full reset (reinitialize)
 ```
 
+### Plugins
+
+Dory supports local plugins you can install per project.
+
+Today you can build plugins for:
+- custom commands
+- lifecycle hooks
+- custom knowledge types with validation
+- TUI extension declarations
+
+Plugin manifests are discovered from:
+
+```text
+.dory/plugins/<plugin-name>/plugin.yaml
+```
+
+Enablement is stored in:
+
+```text
+.dory/plugins.yaml
+```
+
+Minimal manifest example:
+
+```yaml
+name: demo
+api_version: v1
+command: ["./demo-plugin"]
+capabilities:
+  commands: ["sync"]
+  hooks: ["before_create", "after_create"]
+  types: ["incident"]
+  tui: ["dashboard"]
+```
+
+Try the bundled example plugin:
+
+```bash
+dory plugin install ./examples/plugins/incident-validator --enable
+dory plugin doctor incident-validator
+
+# Expected to fail validation (body required)
+dory type create incident "Database outage" --topic ops
+
+# Expected to pass validation
+dory type create incident "Database outage" --topic ops --body $'# Incident report\n\n## Impact\nService degraded'
+```
+
+More runnable examples are available in `examples/plugins/`.
+
+Protocol details and request/response contracts are documented in `docs/plugins/protocol.md`.
+`dory type create` performs plugin-side schema validation via `dory.type.validate` before persisting items.
+Custom store backends are not supported; `.dory` is the only storage backend.
+
 ### Output Formats
 
 All commands support `--json` and `--yaml` flags for machine-readable output.

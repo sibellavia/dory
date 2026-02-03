@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sibellavia/dory/internal/plugin"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/sibellavia/dory/templates"
 	"github.com/spf13/cobra"
@@ -68,8 +69,23 @@ Use --body - to read markdown content from stdin:
 			oneliner, summary, body = parseEditorContent(content)
 		}
 
+		runPluginHooks(plugin.HookBeforeCreate, map[string]interface{}{
+			"type":     "pattern",
+			"oneliner": oneliner,
+			"domain":   domain,
+			"refs":     refs,
+		})
+
 		id, err := s.Pattern(oneliner, domain, summary, body, refs)
 		CheckError(err)
+
+		runPluginHooks(plugin.HookAfterCreate, map[string]interface{}{
+			"id":       id,
+			"type":     "pattern",
+			"oneliner": oneliner,
+			"domain":   domain,
+			"refs":     refs,
+		})
 
 		result := map[string]string{
 			"id":       id,

@@ -526,3 +526,362 @@ body: |
 
     (Add details here)
 
+===
+id: D013
+type: decision
+topic: architecture
+oneliner: Introduce plugin system with phased rollout and process-isolated architecture
+created: 2026-02-03T07:14:29.961672+01:00
+refs:
+    - D011
+    - D012
+body: |
+    # Plugin System Architecture and Rollout
+
+    ## Context
+    Dory should remain simple at its core while enabling advanced extension points for power users.
+
+    ## Decision
+    Adopt a plugin system based on process-isolated external plugins communicating over stdio using JSON-RPC style messages, delivered in phases.
+
+    ## Why this architecture
+    - Preserves a small, stable core
+    - Avoids Go `plugin` portability/version issues
+    - Provides crash isolation and safer failure modes
+    - Keeps plugin language/runtime flexible
+
+    ## Core principles
+    1. Core-first minimalism: storage format, default types, and core commands stay built-in.
+    2. Opt-in extensibility: plugins are disabled unless explicitly enabled per project.
+    3. Strict contracts: typed capability declarations and versioned plugin API.
+    4. Fail-soft behavior: plugin failures do not corrupt core storage.
+
+    ## Plugin model
+    - Plugins are executables with a manifest (`plugin.yaml`).
+    - Project-level enablement config: `.dory/plugins.yaml`.
+    - Host starts plugin processes and negotiates `api_version` and capabilities.
+
+    ### Capability families
+    - `commands`: add new CLI subcommands under `dory plugin run ...` and optional aliases.
+    - `hooks`: pre/post lifecycle hooks for core operations.
+    - `types`: custom knowledge types with schema + validation + rendering hints.
+    - `store` (future/advanced): optional backend adapter behind a strict store interface.
+
+    ## Safety and operational constraints
+    - Per-plugin timeout and max payload size
+    - Structured stderr capture + clear CLI warnings
+    - No implicit execution: explicit install + enable required
+    - API version compatibility checks at startup
+
+    ## Data and compatibility
+    - Core `.dory` format remains the source of truth.
+    - Plugin-provided metadata is namespaced to avoid key collisions.
+    - Unknown plugin metadata must be preserved on read/write (forward compatibility).
+
+    ## Phased rollout
+    ### Phase 1 (MVP): Plugin Host + Command Plugins
+    - Plugin manifest parsing
+    - Plugin discovery/enablement
+    - Stdio process host with request/response framing
+    - Basic plugin health checks and diagnostics command
+
+    ### Phase 2: Hooks + Custom Types
+    - Hook events: `before_create`, `after_create`, `before_remove`, `after_compact`
+    - Deterministic hook ordering and timeout semantics
+    - Custom type registration with schema validation and listing/show support
+
+    ### Phase 3: Store Adapter + TUI Integration Points
+    - Optional pluggable store adapter via strict interface and capability negotiation
+    - TUI-oriented extension APIs (query/render hooks), keeping CLI core independent
+    - Additional hardening: retry/backoff, richer telemetry, compatibility matrix tooling
+
+    ## Non-goals (initial)
+    - In-process dynamic library loading
+    - Plugin network access by default
+    - Making core commands depend on any specific plugin
+
+    ## Implementation notes for future work
+    - Add `internal/plugin/` packages: manifest, registry, host, protocol, hooks
+    - Add `dory plugin` command group: list, inspect, enable, disable, doctor
+    - Add integration tests with a fake plugin binary and protocol fixtures
+
+    ## Consequences
+    - Slight increase in complexity at boundaries (host/protocol), offset by a stable and minimal core.
+    - Enables meaningful ecosystem growth without coupling core development to plugin needs.
+
+===
+id: D013
+type: decision
+topic: architecture
+oneliner: Introduce plugin system with phased rollout and process-isolated architecture
+created: 2026-02-03T07:14:29+01:00
+refs:
+    - D011
+    - D012
+body: |4+
+    # Plugin System Architecture and Rollout
+
+    ## Context
+    Dory should remain simple at its core while enabling advanced extension points for power users.
+
+    ## Decision
+    Adopt a plugin system based on process-isolated external plugins communicating over stdio using JSON-RPC style messages, delivered in phases.
+
+    ## Why this architecture
+    - Preserves a small, stable core
+    - Avoids Go `plugin` portability/version issues
+    - Provides crash isolation and safer failure modes
+    - Keeps plugin language/runtime flexible
+
+    ## Core principles
+    1. Core-first minimalism: storage format, default types, and core commands stay built-in.
+    2. Opt-in extensibility: plugins are disabled unless explicitly enabled per project.
+    3. Strict contracts: typed capability declarations and versioned plugin API.
+    4. Fail-soft behavior: plugin failures do not corrupt core storage.
+
+    ## Plugin model
+    - Plugins are executables with a manifest (`plugin.yaml`).
+    - Project-level enablement config: `.dory/plugins.yaml`.
+    - Host starts plugin processes and negotiates `api_version` and capabilities.
+
+    ### Capability families
+    - `commands`: add new CLI subcommands under `dory plugin run ...` and optional aliases.
+    - `hooks`: pre/post lifecycle hooks for core operations.
+    - `types`: custom knowledge types with schema + validation + rendering hints.
+    - `store` (future/advanced): optional backend adapter behind a strict store interface.
+
+    ## Safety and operational constraints
+    - Per-plugin timeout and max payload size
+    - Structured stderr capture + clear CLI warnings
+    - No implicit execution: explicit install + enable required
+    - API version compatibility checks at startup
+
+    ## Data and compatibility
+    - Core `.dory` format remains the source of truth.
+    - Plugin-provided metadata is namespaced to avoid key collisions.
+    - Unknown plugin metadata must be preserved on read/write (forward compatibility).
+
+    ## Phased rollout
+    ### Phase 1 (MVP): Plugin Host + Command Plugins
+    - Plugin manifest parsing
+    - Plugin discovery/enablement
+    - Stdio process host with request/response framing
+    - Basic plugin health checks and diagnostics command
+
+    ### Phase 2: Hooks + Custom Types
+    - Hook events: `before_create`, `after_create`, `before_remove`, `after_compact`
+    - Deterministic hook ordering and timeout semantics
+    - Custom type registration with schema validation and listing/show support
+
+    ### Phase 3: Store Adapter + TUI Integration Points
+    - Optional pluggable store adapter via strict interface and capability negotiation
+    - TUI-oriented extension APIs (query/render hooks), keeping CLI core independent
+    - Additional hardening: retry/backoff, richer telemetry, compatibility matrix tooling
+
+    ## Non-goals (initial)
+    - In-process dynamic library loading
+    - Plugin network access by default
+    - Making core commands depend on any specific plugin
+
+    ## Implementation notes for future work
+    - Add `internal/plugin/` packages: manifest, registry, host, protocol, hooks
+    - Add `dory plugin` command group: list, inspect, enable, disable, doctor
+    - Add integration tests with a fake plugin binary and protocol fixtures
+
+    ## Consequences
+    - Slight increase in complexity at boundaries (host/protocol), offset by a stable and minimal core.
+    - Enables meaningful ecosystem growth without coupling core development to plugin needs.
+
+    ## Implementation Status (2026-02-03)
+
+    ### Completed in this branch (Phase 1 + 1.5)
+    - Added plugin core scaffolding in `internal/plugin/` (`manifest`, `config`, `discovery`, `protocol`, `host`).
+    - Added `dory plugin` command group with: `list`, `inspect`, `enable`, `disable`, `doctor`, and `run`.
+    - Added project plugin enablement config at `.dory/plugins.yaml`.
+    - Implemented process-isolated request/response execution for `dory.health` and `dory.command.run`.
+    - Added plugin-focused tests (manifest/config/discovery/host/run command resolution).
+    - Added README docs for plugin manifest layout and command usage.
+
+    ### Still pending to fully complete Phase 1
+    - Install/remove lifecycle commands (`dory plugin add/remove` style UX).
+    - Strict API handshake enforcement with explicit version compatibility errors.
+    - Formal protocol documentation and fixture-based integration tests.
+    - Explicit trust/safety UX for first-time plugin enablement.
+
+
+===
+id: D014
+type: decision
+topic: architecture
+oneliner: Implement Phase 1 plugin foundation (discovery, management, diagnostics, command execution)
+created: 2026-02-03T08:46:18.228866+01:00
+refs:
+    - D013
+body: |
+    # Phase 1 Plugin Foundation Implemented
+
+    ## Context
+    D013 defined the long-term plugin architecture and phased rollout. We needed a concrete first implementation that is useful immediately while keeping the core stable.
+
+    ## Decision
+    Ship a pragmatic Phase 1 + 1.5 baseline focused on:
+    - discovery and project-local enablement
+    - plugin management/inspection diagnostics
+    - process-isolated command capability execution
+
+    ## Implemented Scope
+    - `internal/plugin/` package for manifest/config/discovery/protocol/host primitives.
+    - `dory plugin` command group with `list`, `inspect`, `enable`, `disable`, `doctor`, `run`.
+    - JSON request/response line protocol for `dory.health` and `dory.command.run`.
+    - Per-request timeout controls for health and run flows.
+    - Project-local plugin enablement persisted in `.dory/plugins.yaml`.
+
+    ## Technical Notes
+    - Execution model remains short-lived process per request (simple and robust).
+    - Plugin capabilities are declared in manifest and validated at runtime.
+    - Unknown plugins are never auto-enabled; explicit enable is required.
+
+    ## Why this now
+    - Gives immediate extensibility value with minimal surface area.
+    - Preserves Dory's core while validating architecture with real usage.
+    - Creates a stable base for hooks/custom types in Phase 2.
+
+    ## Follow-up
+    - Add install/remove lifecycle commands.
+    - Enforce explicit API handshake compatibility errors.
+    - Add protocol docs + integration fixtures.
+
+===
+id: D015
+type: decision
+topic: architecture
+oneliner: Complete Phase 1 plugin lifecycle and protocol hardening
+created: 2026-02-03T09:00:28.391381+01:00
+refs:
+    - D013
+    - D014
+body: |
+    # Phase 1 Plugin Follow-up Completed
+
+    ## Context
+    D014 tracked three immediate follow-ups: install/remove lifecycle, explicit API compatibility enforcement, and protocol documentation with fixtures.
+
+    ## Decision
+    Implement all three follow-ups in the plugin branch now to stabilize the Phase 1 baseline before Phase 2 work.
+
+    ## Implemented
+    - Added plugin lifecycle commands: `dory plugin install` and `dory plugin remove`.
+    - Added install/remove internals in `internal/plugin/install.go` and `internal/plugin/remove.go`.
+    - Enforced API compatibility via `ValidateAPIVersion` in manifest validation and host invocation.
+    - Hardened manifest validation for safe plugin names.
+    - Fixed relative plugin command execution so installed plugins can use `./plugin.sh` in manifests.
+    - Added protocol documentation at `docs/plugins/protocol.md`.
+    - Added fixture-based protocol integration test in `internal/plugin/protocol_integration_test.go` with `internal/plugin/testdata/fixture-plugin.sh`.
+
+    ## Consequences
+    - Plugin lifecycle is now usable end-to-end in local projects.
+    - Compatibility errors are explicit and early.
+    - Protocol behavior is documented and verified with executable fixtures.
+
+===
+id: D016
+type: decision
+topic: architecture
+oneliner: Prioritize advanced plugin capabilities after Phase 1 baseline
+created: 2026-02-03T09:09:16.668894+01:00
+refs:
+    - D013
+    - D014
+    - D015
+body: |
+    # Advanced Plugin Roadmap Priority
+
+    ## Context
+    Phase 1 and 1.5 established plugin lifecycle, discovery, diagnostics, and command execution.
+
+    ## Decision
+    Prioritize implementation of advanced extension capabilities next:
+    - hooks
+    - custom knowledge types
+    - custom store backends
+    - TUI extension points
+
+    ## Clarification: custom store backend
+    A custom store backend means a plugin can implement the persistence layer behind Dory's store interface while core CLI semantics stay stable.
+
+    Examples of potential backends:
+    - alternative local formats (SQLite, structured files)
+    - remote/team-backed persistence
+    - encrypted-at-rest backends
+
+    ## Constraints
+    - Keep core behavior deterministic and backward-compatible.
+    - Core `.dory` format remains first-class unless explicitly configured otherwise.
+    - Plugin failures must not corrupt project knowledge.
+
+===
+id: D017
+type: decision
+topic: architecture
+oneliner: Exclude plugin store backends for now; prioritize hooks/types/TUI
+created: 2026-02-03T09:24:00.795839+01:00
+refs:
+    - D013
+    - D014
+    - D015
+    - D016
+body: |
+    # Plugin Scope Decision (Phase 2)
+
+    ## Context
+    Store backend plugins were considered as part of long-term plugin architecture, but they carry high data-integrity and support risks this early.
+
+    ## Decision
+    Keep `.dory` as the single storage backend for now and do not support plugin-provided store backends.
+
+    Prioritize implementation work in this order:
+    1. Hooks
+    2. Custom knowledge types
+    3. TUI extension points
+
+    ## Rationale
+    - Preserves deterministic, stable core persistence while plugin APIs mature.
+    - Reduces risk of data loss/corruption from third-party backend implementations.
+    - Delivers high-value extensibility (automation + domain modeling + UX hooks) with lower operational risk.
+
+    ## Consequences
+    - `capabilities.store` is explicitly rejected in plugin manifests for now.
+    - Plugin roadmap remains modular; backend extensibility can be revisited later behind stricter compatibility guarantees.
+
+===
+id: D018
+type: decision
+topic: architecture
+oneliner: Add bundled incident-validator plugin example and documentation
+created: 2026-02-03T10:04:06.413145+01:00
+refs:
+    - D015
+    - D017
+body: |
+    # Bundled Plugin Example for Custom Type Validation
+
+    ## Context
+    After introducing plugin-side custom type validation (`dory.type.validate`), users need a concrete reference implementation to understand how to build and test plugins.
+
+    ## Decision
+    Bundle an executable example plugin under `examples/plugins/incident-validator` and document usage in `README.md`.
+
+    ## What is included
+    - `plugin.yaml` with `capabilities.types: ["incident"]`
+    - `plugin.sh` implementing:
+      - `dory.health`
+      - `dory.type.validate`
+    - validation rules for `incident` payloads:
+      - `topic` required
+      - `body` required
+      - `body` must contain `## Impact`
+
+    ## Consequences
+    - New plugin authors can copy and adapt a working reference.
+    - Validation flow can be tested quickly with local `dory plugin install ... --enable` and `dory type create ...` commands.
+

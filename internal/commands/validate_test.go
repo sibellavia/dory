@@ -26,13 +26,26 @@ func TestValidateSeverityFlag(t *testing.T) {
 }
 
 func TestValidateItemType(t *testing.T) {
-	for _, itemType := range []string{"", "lesson", "decision", "pattern"} {
+	for _, itemType := range []string{"", "lesson", "decision", "pattern", "incident", "postmortem_v2"} {
 		if err := validateItemType(itemType); err != nil {
 			t.Fatalf("expected type %q to be valid, got error: %v", itemType, err)
 		}
 	}
-	if err := validateItemType("unknown"); err == nil {
-		t.Fatal("expected invalid type to error")
+	for _, itemType := range []string{"UPPERCASE", "has space", "contains/slash"} {
+		if err := validateItemType(itemType); err == nil {
+			t.Fatalf("expected invalid type %q to error", itemType)
+		}
+	}
+}
+
+func TestIsCoreItemType(t *testing.T) {
+	for _, itemType := range []string{"lesson", "decision", "pattern"} {
+		if !isCoreItemType(itemType) {
+			t.Fatalf("expected %q to be core type", itemType)
+		}
+	}
+	if isCoreItemType("incident") {
+		t.Fatal("expected custom type not to be core")
 	}
 }
 

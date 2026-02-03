@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sibellavia/dory/internal/plugin"
 	"github.com/sibellavia/dory/internal/store"
 	"github.com/spf13/cobra"
 )
@@ -54,8 +55,16 @@ var removeCmd = &cobra.Command{
 			}
 		}
 
+		runPluginHooks(plugin.HookBeforeRemove, map[string]interface{}{
+			"id": id,
+		})
+
 		err = s.Remove(id)
 		CheckError(err)
+
+		runPluginHooks(plugin.HookAfterRemove, map[string]interface{}{
+			"id": id,
+		})
 
 		result := map[string]string{
 			"id":     id,

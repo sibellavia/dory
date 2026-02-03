@@ -2,10 +2,13 @@ package commands
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/sibellavia/dory/internal/models"
 )
+
+var customTypePattern = regexp.MustCompile(`^[a-z][a-z0-9._-]*$`)
 
 func isValidSeverity(severity models.Severity) bool {
 	switch severity {
@@ -30,11 +33,18 @@ func validateItemType(itemType string) error {
 	if itemType == "" {
 		return nil
 	}
+	if !customTypePattern.MatchString(itemType) {
+		return fmt.Errorf("invalid type %q (use lowercase names like lesson, decision, pattern, custom_type)", itemType)
+	}
+	return nil
+}
+
+func isCoreItemType(itemType string) bool {
 	switch itemType {
 	case "lesson", "decision", "pattern":
-		return nil
+		return true
 	default:
-		return fmt.Errorf("invalid type %q (use lesson, decision, or pattern)", itemType)
+		return false
 	}
 }
 

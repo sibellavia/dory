@@ -181,6 +181,37 @@ func (s *Store) Pattern(oneliner, domain, summary, body string, refs []string) (
 	return id, nil
 }
 
+// CreateCustom adds a new custom type entry.
+func (s *Store) CreateCustom(itemType, oneliner, topic, body string, refs []string) (string, error) {
+	if err := s.open(); err != nil {
+		return "", err
+	}
+
+	id := s.df.NextID("K")
+	created := time.Now()
+
+	fullBody := body
+	if fullBody == "" {
+		fullBody = fmt.Sprintf("# %s\n\n## Context\n\n(Add context here)\n", oneliner)
+	}
+
+	entry := &doryfile.Entry{
+		ID:       id,
+		Type:     itemType,
+		Topic:    topic,
+		Oneliner: oneliner,
+		Created:  created,
+		Refs:     refs,
+		Body:     fullBody,
+	}
+
+	if err := s.df.Append(entry); err != nil {
+		return "", fmt.Errorf("failed to append %s: %w", itemType, err)
+	}
+
+	return id, nil
+}
+
 // Show returns the full content for a specific item
 func (s *Store) Show(id string) (string, error) {
 	if err := s.open(); err != nil {
@@ -245,80 +276,39 @@ func (s *Store) List(topic, itemType string, severity models.Severity, since, un
 
 	var items []ListItem
 
-	// Filter lessons
-	if itemType == "" || itemType == "lesson" {
-		for id, entry := range s.df.Lessons() {
-			if topic != "" && entry.Topic != topic {
-				continue
-			}
-			if severity != "" && models.Severity(entry.Severity) != severity {
-				continue
-			}
-			if !since.IsZero() && entry.Created.Before(since) {
-				continue
-			}
-			if !until.IsZero() && entry.Created.After(until) {
-				continue
-			}
-			items = append(items, ListItem{
-				ID:       id,
-				Type:     "lesson",
-				Oneliner: entry.Oneliner,
-				Topic:    entry.Topic,
-				Severity: models.Severity(entry.Severity),
-				Created:  entry.Created.Format("2006-01-02"),
-			})
+	for id, entry := range s.df.Entries() {
+		if itemType != "" && entry.Type != itemType {
+			continue
 		}
-	}
+		if topic != "" && entry.Topic != topic && entry.Domain != topic {
+			continue
+		}
+		if severity != "" && models.Severity(entry.Severity) != severity {
+			continue
+		}
+		if !since.IsZero() && entry.Created.Before(since) {
+			continue
+		}
+		if !until.IsZero() && entry.Created.After(until) {
+			continue
+		}
 
-	// Filter decisions
-	if itemType == "" || itemType == "decision" {
-		for id, entry := range s.df.Decisions() {
-			if topic != "" && entry.Topic != topic {
-				continue
-			}
-			if severity != "" {
-				continue
-			}
-			if !since.IsZero() && entry.Created.Before(since) {
-				continue
-			}
-			if !until.IsZero() && entry.Created.After(until) {
-				continue
-			}
-			items = append(items, ListItem{
-				ID:       id,
-				Type:     "decision",
-				Oneliner: entry.Oneliner,
-				Topic:    entry.Topic,
-				Created:  entry.Created.Format("2006-01-02"),
-			})
+		item := ListItem{
+			ID:       id,
+			Type:     entry.Type,
+			Oneliner: entry.Oneliner,
+			Created:  entry.Created.Format("2006-01-02"),
 		}
-	}
-
-	// Filter patterns
-	if itemType == "" || itemType == "pattern" {
-		for id, entry := range s.df.Patterns() {
-			if topic != "" && entry.Domain != topic {
-				continue
-			}
-			if severity != "" {
-				continue
-			}
-			if !since.IsZero() && entry.Created.Before(since) {
-				continue
-			}
-			if !until.IsZero() && entry.Created.After(until) {
-				continue
-			}
-			items = append(items, ListItem{
-				ID:       id,
-				Type:     "pattern",
-				Oneliner: entry.Oneliner,
-				Domain:   entry.Domain,
-				Created:  entry.Created.Format("2006-01-02"),
-			})
+		if entry.Topic != "" {
+			item.Topic = entry.Topic
 		}
+		if entry.Domain != "" {
+			item.Domain = entry.Domain
+		}
+		if entry.Severity != "" {
+			item.Severity = models.Severity(entry.Severity)
+		}
+		items = append(items, item)
 	}
 
 	sort.Slice(items, func(i, j int) bool {
@@ -379,62 +369,36 @@ func (s *Store) Recall(topic string) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("# Knowledge for topic: %s\n\n", topic))
 
-	lessons := s.df.Lessons()
-	decisions := s.df.Decisions()
-	patterns := s.df.Patterns()
-
-	// Lessons
-	var lessonIDs []string
-	for id, entry := range lessons {
-		if entry.Topic == topic {
-			lessonIDs = append(lessonIDs, id)
+	grouped := make(map[string][]string)
+	entries := s.df.Entries()
+	for id, entry := range entries {
+		if entry.Topic == topic || entry.Domain == topic {
+			grouped[entry.Type] = append(grouped[entry.Type], id)
 		}
 	}
-	sort.Strings(lessonIDs)
-	if len(lessonIDs) > 0 {
-		buf.WriteString("## Lessons\n\n")
-		for _, id := range lessonIDs {
-			entry := lessons[id]
-			buf.WriteString(fmt.Sprintf("### %s [%s]\n", id, entry.Severity))
+
+	var types []string
+	for itemType := range grouped {
+		types = append(types, itemType)
+	}
+	sort.Strings(types)
+
+	for _, itemType := range types {
+		ids := grouped[itemType]
+		sort.Strings(ids)
+		buf.WriteString(fmt.Sprintf("## %s\n\n", itemType))
+		for _, id := range ids {
+			entry := entries[id]
+			if entry.Severity != "" {
+				buf.WriteString(fmt.Sprintf("### %s [%s]\n", id, entry.Severity))
+			} else {
+				buf.WriteString(fmt.Sprintf("### %s\n", id))
+			}
 			buf.WriteString(fmt.Sprintf("%s\n\n", entry.Oneliner))
 		}
 	}
 
-	// Decisions
-	var decisionIDs []string
-	for id, entry := range decisions {
-		if entry.Topic == topic {
-			decisionIDs = append(decisionIDs, id)
-		}
-	}
-	sort.Strings(decisionIDs)
-	if len(decisionIDs) > 0 {
-		buf.WriteString("## Decisions\n\n")
-		for _, id := range decisionIDs {
-			entry := decisions[id]
-			buf.WriteString(fmt.Sprintf("### %s\n", id))
-			buf.WriteString(fmt.Sprintf("%s\n\n", entry.Oneliner))
-		}
-	}
-
-	// Patterns
-	var patternIDs []string
-	for id, entry := range patterns {
-		if entry.Domain == topic {
-			patternIDs = append(patternIDs, id)
-		}
-	}
-	sort.Strings(patternIDs)
-	if len(patternIDs) > 0 {
-		buf.WriteString("## Patterns\n\n")
-		for _, id := range patternIDs {
-			entry := patterns[id]
-			buf.WriteString(fmt.Sprintf("### %s\n", id))
-			buf.WriteString(fmt.Sprintf("%s\n\n", entry.Oneliner))
-		}
-	}
-
-	if len(lessonIDs) == 0 && len(decisionIDs) == 0 && len(patternIDs) == 0 {
+	if len(types) == 0 {
 		buf.WriteString("No knowledge found for this topic.\n")
 	}
 
@@ -455,18 +419,10 @@ func (s *Store) Topics() ([]TopicInfo, error) {
 
 	counts := make(map[string]int)
 
-	for _, entry := range s.df.Lessons() {
+	for _, entry := range s.df.Entries() {
 		if entry.Topic != "" {
 			counts[entry.Topic]++
-		}
-	}
-	for _, entry := range s.df.Decisions() {
-		if entry.Topic != "" {
-			counts[entry.Topic]++
-		}
-	}
-	for _, entry := range s.df.Patterns() {
-		if entry.Domain != "" {
+		} else if entry.Domain != "" {
 			counts[entry.Domain]++
 		}
 	}
