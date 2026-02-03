@@ -17,8 +17,8 @@ Or download a binary from [releases](https://github.com/sibellavia/dory/releases
 ## Quick start
 
 ```bash
-dory init                        # Initialize in your project 
-cat .dory/index.yaml             # Read state at session start
+dory init                        # Initialize in your project
+dory context                     # Smart context for session start
 
 # Record knowledge as you work
 dory learn "Timeout must be > 30s for large uploads" --topic api --severity high
@@ -97,7 +97,8 @@ Same flags work for `decide` and `pattern`.
 ### Retrieving Knowledge
 
 ```bash
-cat .dory/index.yaml    # Index + state (for session start)
+dory context            # Smart context for session start (state + critical + recent)
+dory context --topic db # Also include all database-related items
 dory recall <topic>     # All knowledge for a topic
 dory show <id>          # Full content for an item
 dory list               # List all items
@@ -106,6 +107,16 @@ dory list --type lesson # Filter by type
 dory list --since 2026-01-25  # Items from date onward
 dory list --since 2026-01-01 --until 2026-01-31  # Date range
 dory topics             # List topics with counts
+```
+
+### Exploring Relationships
+
+```bash
+dory refs <id>          # Show what an item references and what references it
+dory expand <id>        # Get full content of item + all connected items
+dory expand <id> --depth 2  # Include items 2 hops away
+dory graph              # Overview of all items and connections
+dory graph <id>         # Visual graph centered on an item
 ```
 
 ### Session State
@@ -234,15 +245,41 @@ dory status --progress "Fixed connection issues" --next "Load test again"
 Session 2 - New agent picks up where we left off:
 
 ```bash
-cat .dory/index.yaml              # Read state and index
-dory recall database              # What do we know about database?
-dory list --type lesson --since 2026-01-20   # Recent lessons
+dory context                      # Get state, critical lessons, recent items
+dory context --topic database     # Focus on database knowledge
+dory refs D001                    # See what influenced this decision
+dory expand D001                  # Get D001 + all related items
 
 # Continue working... establish a pattern
 dory pattern "All DB calls use context timeout" --domain database --refs D001
 ```
 
 The lesson informed a decision, which became a pattern. Future sessions won't repeat the debugging.
+
+### Visualizing the knowledge graph
+
+```bash
+dory graph                        # Overview of all items and connections
+dory graph D001                   # Visual graph centered on D001
+```
+
+Output:
+```
+               ┌────────────┐
+               │    L001    │
+               └────────────┘
+                     │
+                     ▼
+   ╔══════════════════════════════════════════╗
+   ║                   D001                   ║
+   ║  Limit pool size to 20, add queue        ║
+   ╚══════════════════════════════════════════╝
+                     │
+                     ▼
+               ┌────────────┐
+               │    P001    │
+               └────────────┘
+```
 
 ### Reviewing recent activity
 

@@ -13,7 +13,14 @@ Dory uses a single-file format:
 
 ## Session Start
 
-At the beginning of every session, read the index:
+At the beginning of every session, get context:
+```bash
+dory context                     # State + critical lessons + recent items
+dory context --topic <topic>     # Also include all items for a topic
+dory context --json              # Structured output for programmatic use
+```
+
+Or read the raw index:
 ```bash
 cat .dory/index.yaml
 ```
@@ -172,6 +179,30 @@ dory list --topic database
 
 # Filter by severity
 dory list --severity critical
+```
+
+## Exploring Relationships
+
+Knowledge items are connected through refs. Use these commands to explore:
+
+```bash
+# See what an item references and what references it
+dory refs D001
+
+# Get full content of an item + all connected items
+dory expand D001
+dory expand D001 --depth 2    # Include items 2 hops away
+
+# Visualize the knowledge graph
+dory graph                    # Overview of all items
+dory graph D001               # Graph centered on D001
+```
+
+Example `dory refs D001` output:
+```
+D001: Limit pool size to 20, add queue
+  ← refs: L001 (Connection pool exhausts under load)
+  → referenced by: P001 (All DB calls use context timeout)
 ```
 
 ### Date Range Filtering
