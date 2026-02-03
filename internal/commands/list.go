@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/sibellavia/dory/internal/models"
@@ -22,9 +23,12 @@ var listCmd = &cobra.Command{
 		severity := models.Severity(severityStr)
 		sinceStr, _ := cmd.Flags().GetString("since")
 		untilStr, _ := cmd.Flags().GetString("until")
+		sortKey, _ := cmd.Flags().GetString("sort")
+		desc, _ := cmd.Flags().GetBool("desc")
 
 		CheckError(validateItemType(itemType))
 		CheckError(validateSeverityFlag(severity))
+		CheckError(validateListSort(sortKey))
 
 		since, err := parseDateFlag(sinceStr, "--since")
 		CheckError(err)
@@ -42,6 +46,7 @@ var listCmd = &cobra.Command{
 		defer s.Close()
 		items, err := s.List(topic, itemType, severity, since, until)
 		CheckError(err)
+		sortListItems(items, sortKey, desc)
 
 		OutputResult(cmd, items, func() {
 			if len(items) == 0 {
@@ -82,5 +87,45 @@ func init() {
 	listCmd.Flags().StringP("severity", "s", "", "Filter by severity: critical, high, normal, low")
 	listCmd.Flags().String("since", "", "Show items created on or after date (YYYY-MM-DD)")
 	listCmd.Flags().String("until", "", "Show items created on or before date (YYYY-MM-DD)")
+	listCmd.Flags().String("sort", "id", "Sort by: id, created")
+	listCmd.Flags().Bool("desc", false, "Sort in descending order")
 	RootCmd.AddCommand(listCmd)
+}
+
+func validateListSort(sortKey string) error {
+	switch sortKey {
+	case "", "id", "created":
+		return nil
+	default:
+		return fmt.Errorf("invalid --sort value %q (expected: id, created)", sortKey)
+	}
+}
+
+func sortListItems(items []store.ListItem, sortKey string, desc bool) {
+	compare := func(a, b store.ListItem) int {
+		switch sortKey {
+		case "created":
+			if a.CreatedAt.Before(b.CreatedAt) {
+				return -1
+			}
+			if a.CreatedAt.After(b.CreatedAt) {
+				return 1
+			}
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		if a.ID > b.ID {
+			return 1
+		}
+		return 0
+	}
+
+	sort.SliceStable(items, func(i, j int) bool {
+		cmp := compare(items[i], items[j])
+		if desc {
+			cmp = -cmp
+		}
+		return cmp < 0
+	})
 }

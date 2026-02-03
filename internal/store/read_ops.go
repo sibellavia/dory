@@ -183,10 +183,11 @@ func (s *Store) DumpIndex() (string, error) {
 
 func toListItem(id string, entry *doryfile.MemoryEntry) ListItem {
 	item := ListItem{
-		ID:       id,
-		Type:     entry.Type,
-		Oneliner: entry.Oneliner,
-		Created:  entry.Created.Format("2006-01-02"),
+		ID:        id,
+		Type:      entry.Type,
+		Oneliner:  entry.Oneliner,
+		Created:   entry.Created.Format("2006-01-02"),
+		CreatedAt: entry.Created.UTC(),
 	}
 	if entry.Topic != "" {
 		item.Topic = entry.Topic

@@ -25,13 +25,14 @@ type Store struct {
 
 // ListItem represents an item in list output.
 type ListItem struct {
-	ID       string          `json:"id" yaml:"id"`
-	Type     string          `json:"type" yaml:"type"`
-	Oneliner string          `json:"oneliner" yaml:"oneliner"`
-	Topic    string          `json:"topic,omitempty" yaml:"topic,omitempty"`
-	Domain   string          `json:"domain,omitempty" yaml:"domain,omitempty"`
-	Severity models.Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
-	Created  string          `json:"created" yaml:"created"`
+	ID        string          `json:"id" yaml:"id"`
+	Type      string          `json:"type" yaml:"type"`
+	Oneliner  string          `json:"oneliner" yaml:"oneliner"`
+	Topic     string          `json:"topic,omitempty" yaml:"topic,omitempty"`
+	Domain    string          `json:"domain,omitempty" yaml:"domain,omitempty"`
+	Severity  models.Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
+	Created   string          `json:"created" yaml:"created"`
+	CreatedAt time.Time       `json:"-" yaml:"-"`
 }
 
 // TopicInfo represents a topic with its item count.
