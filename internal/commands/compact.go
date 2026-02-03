@@ -22,7 +22,7 @@ This is safe to run at any time - no data will be lost.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		err := s.Compact()

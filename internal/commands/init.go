@@ -38,7 +38,7 @@ var initCmd = &cobra.Command{
 			project = filepath.Base(cwd)
 		}
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		err := s.Init(project, description)
 		CheckError(err)
 		CheckError(s.Close())

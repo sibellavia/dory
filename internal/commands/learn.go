@@ -42,7 +42,7 @@ Use --body - to read markdown content from stdin:
 		}
 		CheckError(validateSeverityFlag(severity))
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		var oneliner, body string
@@ -109,7 +109,7 @@ func init() {
 	learnCmd.Flags().StringP("topic", "t", "", "Topic for the lesson (required)")
 	learnCmd.Flags().StringP("severity", "s", "normal", "Severity level: critical, high, normal, low")
 	learnCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	learnCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
+	learnCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L-01JX...,D-01JY...)")
 	RootCmd.AddCommand(learnCmd)
 }
 

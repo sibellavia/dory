@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -10,6 +11,24 @@ import (
 )
 
 var graphDepth int
+
+type GraphNode struct {
+	ID       string `json:"id" yaml:"id"`
+	Type     string `json:"type" yaml:"type"`
+	Oneliner string `json:"oneliner" yaml:"oneliner"`
+}
+
+type GraphEdge struct {
+	From string `json:"from" yaml:"from"`
+	To   string `json:"to" yaml:"to"`
+}
+
+type GraphResult struct {
+	Center string      `json:"center,omitempty" yaml:"center,omitempty"`
+	Depth  int         `json:"depth" yaml:"depth"`
+	Nodes  []GraphNode `json:"nodes" yaml:"nodes"`
+	Edges  []GraphEdge `json:"edges" yaml:"edges"`
+}
 
 var graphCmd = &cobra.Command{
 	Use:   "graph [id]",
@@ -20,29 +39,52 @@ Without an ID, shows an overview of all items and connections.
 With an ID, shows a visual graph centered on that item.
 
 Examples:
-  dory graph              # Overview of all items
-  dory graph D001         # Graph centered on D001
-  dory graph D001 --depth 3  # Include items up to 3 hops away`,
+  dory graph                    # Overview of all items
+  dory graph D-01JX...          # Graph centered on an item
+  dory graph D-01JX... --depth 3  # Include items up to 3 hops away`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
+
+		format := GetOutputFormat(cmd)
+		if format == "json" || format == "yaml" {
+			center := ""
+			if len(args) > 0 {
+				center = args[0]
+			}
+			result, err := buildGraphData(s, center, graphDepth)
+			CheckError(err)
+			OutputResult(cmd, result, func() {})
+			return
+		}
 
 		if len(args) == 0 {
 			output, err := generateFullTerminalGraph(s)
 			CheckError(err)
 			fmt.Print(output)
 		} else {
-			output, err := generateTerminalGraph(s, args[0])
+			output, err := generateTerminalGraph(s, args[0], graphDepth)
 			CheckError(err)
 			fmt.Print(output)
 		}
 	},
 }
 
-func generateTerminalGraph(s *store.Store, id string) (string, error) {
+func generateTerminalGraph(s *store.Store, id string, depth int) (string, error) {
+	if depth < 1 {
+		depth = 1
+	}
+	if depth > 1 {
+		result, err := buildGraphData(s, id, depth)
+		if err != nil {
+			return "", err
+		}
+		return renderDepthGraph(result), nil
+	}
+
 	refInfo, err := s.Refs(id)
 	if err != nil {
 		return "", err
@@ -71,6 +113,28 @@ func generateTerminalGraph(s *store.Store, id string) (string, error) {
 	sb.WriteString("  Legend: ═══ root node   ─── connected nodes   │ reference\n")
 
 	return sb.String(), nil
+}
+
+func renderDepthGraph(result *GraphResult) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Graph center: %s (depth=%d)\n\n", result.Center, result.Depth))
+	sb.WriteString(fmt.Sprintf("Nodes (%d)\n", len(result.Nodes)))
+	sb.WriteString(strings.Repeat("─", 50) + "\n")
+	for _, node := range result.Nodes {
+		oneliner := node.Oneliner
+		if len(oneliner) > 60 {
+			oneliner = oneliner[:57] + "..."
+		}
+		sb.WriteString(fmt.Sprintf("  %s [%s] %s\n", node.ID, node.Type, oneliner))
+	}
+
+	sb.WriteString(fmt.Sprintf("\nEdges (%d)\n", len(result.Edges)))
+	sb.WriteString(strings.Repeat("─", 50) + "\n")
+	for _, edge := range result.Edges {
+		sb.WriteString(fmt.Sprintf("  %s -> %s\n", edge.From, edge.To))
+	}
+	sb.WriteString("\n")
+	return sb.String()
 }
 
 func renderRootNode(id, oneliner string) string {
@@ -372,6 +436,86 @@ func generateFullTerminalGraph(s *store.Store) (string, error) {
 	sb.WriteString("\nLegend: → has refs  ← is referenced  ⇄ both\n")
 
 	return sb.String(), nil
+}
+
+func buildGraphData(s *store.Store, center string, depth int) (*GraphResult, error) {
+	if depth < 1 {
+		depth = 1
+	}
+
+	result := &GraphResult{
+		Center: center,
+		Depth:  depth,
+		Nodes:  make([]GraphNode, 0),
+		Edges:  make([]GraphEdge, 0),
+	}
+
+	nodeSet := make(map[string]GraphNode)
+	if center == "" {
+		items, err := s.List("", "", "", time.Time{}, time.Time{})
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range items {
+			nodeSet[item.ID] = GraphNode{
+				ID:       item.ID,
+				Type:     item.Type,
+				Oneliner: item.Oneliner,
+			}
+		}
+	} else {
+		expanded, err := s.Expand(center, depth)
+		if err != nil {
+			return nil, err
+		}
+		nodeSet[expanded.Root.ID] = GraphNode{
+			ID:       expanded.Root.ID,
+			Type:     expanded.Root.Type,
+			Oneliner: expanded.Root.Oneliner,
+		}
+		for _, item := range expanded.Connected {
+			nodeSet[item.ID] = GraphNode{
+				ID:       item.ID,
+				Type:     item.Type,
+				Oneliner: item.Oneliner,
+			}
+		}
+	}
+
+	nodeIDs := make([]string, 0, len(nodeSet))
+	for id := range nodeSet {
+		nodeIDs = append(nodeIDs, id)
+	}
+	sort.Strings(nodeIDs)
+	for _, id := range nodeIDs {
+		result.Nodes = append(result.Nodes, nodeSet[id])
+	}
+
+	edgeSet := make(map[string]GraphEdge)
+	for _, id := range nodeIDs {
+		refInfo, err := s.Refs(id)
+		if err != nil {
+			continue
+		}
+		for _, ref := range refInfo.RefsTo {
+			if _, ok := nodeSet[ref.ID]; !ok {
+				continue
+			}
+			key := id + "->" + ref.ID
+			edgeSet[key] = GraphEdge{From: id, To: ref.ID}
+		}
+	}
+
+	edgeKeys := make([]string, 0, len(edgeSet))
+	for key := range edgeSet {
+		edgeKeys = append(edgeKeys, key)
+	}
+	sort.Strings(edgeKeys)
+	for _, key := range edgeKeys {
+		result.Edges = append(result.Edges, edgeSet[key])
+	}
+
+	return result, nil
 }
 
 func init() {

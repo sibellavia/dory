@@ -65,7 +65,7 @@ func (s *Store) List(topic, itemType string, severity models.Severity, since, un
 		return nil, err
 	}
 
-	var items []ListItem
+	items := make([]ListItem, 0)
 	for id, entry := range s.df.Entries() {
 		if itemType != "" && entry.Type != itemType {
 			continue
@@ -153,7 +153,7 @@ func (s *Store) Topics() ([]TopicInfo, error) {
 		}
 	}
 
-	var topics []TopicInfo
+	topics := make([]TopicInfo, 0)
 	for name, count := range counts {
 		topics = append(topics, TopicInfo{Name: name, Count: count})
 	}
@@ -187,7 +187,7 @@ func toListItem(id string, entry *doryfile.MemoryEntry) ListItem {
 		Type:      entry.Type,
 		Oneliner:  entry.Oneliner,
 		Created:   entry.Created.Format("2006-01-02"),
-		CreatedAt: entry.Created.UTC(),
+		CreatedAt: entry.Created.UTC().Format(time.RFC3339Nano),
 	}
 	if entry.Topic != "" {
 		item.Topic = entry.Topic

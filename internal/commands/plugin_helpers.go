@@ -7,7 +7,7 @@ import (
 	"github.com/sibellavia/dory/internal/plugin"
 )
 
-const doryRoot = ".dory"
+var doryRoot = ".dory"
 
 func capabilitySummary(c plugin.Capabilities) string {
 	var parts []string

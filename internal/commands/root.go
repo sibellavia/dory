@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -11,6 +12,7 @@ import (
 
 var (
 	outputFormat string
+	agentMode    bool
 )
 
 // RootCmd is the root command for dory
@@ -28,20 +30,77 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&outputFormat, "format", "", "Output format: json, yaml (default: human-readable)")
 	RootCmd.PersistentFlags().Bool("json", false, "Output in JSON format (shorthand for --format=json)")
 	RootCmd.PersistentFlags().Bool("yaml", false, "Output in YAML format (shorthand for --format=yaml)")
+	RootCmd.PersistentFlags().BoolVar(&agentMode, "agent", false, "Agent mode: machine-oriented defaults (YAML output, no interactive prompts)")
 }
 
 // GetOutputFormat returns the output format from flags
 func GetOutputFormat(cmd *cobra.Command) string {
-	if f, _ := cmd.Flags().GetBool("json"); f {
+	jsonFlag, _ := cmd.Flags().GetBool("json")
+	yamlFlag, _ := cmd.Flags().GetBool("yaml")
+	if jsonFlag && yamlFlag {
+		CheckError(fmt.Errorf("cannot use --json and --yaml together"))
+		return "human"
+	}
+
+	if jsonFlag {
 		return "json"
 	}
-	if f, _ := cmd.Flags().GetBool("yaml"); f {
+	if yamlFlag {
 		return "yaml"
 	}
 	if outputFormat != "" {
-		return outputFormat
+		switch outputFormat {
+		case "json", "yaml":
+			return outputFormat
+		default:
+			CheckError(fmt.Errorf("invalid --format value %q (expected: json, yaml)", outputFormat))
+			return "human"
+		}
+	}
+	if agentMode {
+		return "yaml"
 	}
 	return "human"
+}
+
+func resolveDoryRoot(start string) (string, error) {
+	dir, err := filepath.Abs(start)
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		root := filepath.Join(dir, ".dory")
+		indexPath := filepath.Join(root, "index.yaml")
+		if info, err := os.Stat(indexPath); err == nil && !info.IsDir() {
+			return root, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return "", os.ErrNotExist
+}
+
+func requireInteractive(force bool, flagName string) {
+	if agentMode && !force {
+		CheckError(fmt.Errorf("%s is required in --agent mode", flagName))
+	}
+	if force {
+		return
+	}
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return
+	}
+	// If stdin is piped/non-tty, prompt-based commands would hang.
+	if info.Mode()&os.ModeCharDevice == 0 {
+		CheckError(fmt.Errorf("interactive confirmation requires a TTY; pass %s", flagName))
+	}
 }
 
 // OutputResult outputs the result in the requested format
@@ -72,8 +131,10 @@ func CheckError(err error) {
 
 // RequireStore ensures the dory store exists
 func RequireStore() {
-	if _, err := os.Stat(".dory/index.yaml"); os.IsNotExist(err) {
+	root, err := resolveDoryRoot(".")
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error: Dory not initialized. Run 'dory init' first.")
 		os.Exit(1)
 	}
+	doryRoot = root
 }

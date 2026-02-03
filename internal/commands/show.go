@@ -16,7 +16,7 @@ var showCmd = &cobra.Command{
 		RequireStore()
 
 		id := args[0]
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		content, err := s.Show(id)

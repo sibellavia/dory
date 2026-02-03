@@ -36,7 +36,7 @@ Use --body - to read markdown content from stdin:
 			CheckError(fmt.Errorf("--domain is required"))
 		}
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		var oneliner, body string
@@ -99,6 +99,6 @@ Use --body - to read markdown content from stdin:
 func init() {
 	patternCmd.Flags().StringP("domain", "d", "", "Domain for the pattern (required)")
 	patternCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	patternCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
+	patternCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L-01JX...,D-01JY...)")
 	RootCmd.AddCommand(patternCmd)
 }

@@ -1154,3 +1154,120 @@ state:
     open_questions:
         - Do you want a recurring weekly summary entry pattern in .dory?
     last_updated: "2026-02-03T19:11:24Z"
+---
+op: item.create
+item:
+    id: D-01KGJHJ5BCCMWS1813B2ERXN2N
+    type: decision
+    topic: cli
+    oneliner: Standardize agent-facing CLI behavior and machine contracts
+    created: 2026-02-03T20:02:06.828112Z
+    body: |
+        # Decision
+
+        Adopt an agent-first CLI contract:
+
+        - `graph` and `import` must honor `--json/--yaml`.
+        - Invalid `--format` must fail fast.
+        - Commands should resolve `.dory` from current or parent directories.
+        - Non-interactive runs must not block on prompts.
+        - List outputs should include precise timestamps for chronology (`created_at`).
+---
+op: item.create
+item:
+    id: L-01KGJHJ5CBP92F5ETVSM4C5507
+    type: lesson
+    topic: cli
+    severity: high
+    oneliner: Agent UX sweep fixed major command inconsistencies
+    created: 2026-02-03T20:02:06.859968Z
+    refs:
+        - D-01KGJHJ5BCCMWS1813B2ERXN2N
+    body: |
+        # Outcome
+
+        Implemented and validated:
+
+        - `graph --json/--yaml` support plus depth-aware graph data.
+        - `import --json/--yaml` structured results.
+        - Parent-directory `.dory` discovery from subfolders.
+        - Strict `--format` validation (invalid values now error).
+        - Empty list/topics now serialize as `[]` instead of `null`.
+        - `list` machine output now includes `created_at` for chronology.
+        - Non-interactive destructive commands require `--force` instead of hanging.
+
+        These changes improve native behavior for coding agents orchestrating CLI calls.
+---
+op: state.update
+state:
+    goal: Make Dory CLI maximally native for coding agents
+    progress: Completed major UX consistency fixes and machine-contract hardening
+    next:
+        - Review remaining command overlap (e.g.
+        - ' recall vs list)'
+        - Consider agent-mode defaults for non-interactive execution
+    working_files:
+        - internal/commands/root.go
+        - internal/commands/graph.go
+        - internal/commands/import.go
+        - internal/store/read_ops.go
+    open_questions:
+        - Do we want to formally deprecate recall in favor of list/context for agent flows?
+    last_updated: "2026-02-03T20:02:06Z"
+---
+op: item.create
+item:
+    id: D-01KGJJST4CAHYRVNCEA4JM32HK
+    type: decision
+    topic: cli-ux
+    oneliner: Canonical retrieval command is list --topic; recall remains hidden compatibility alias
+    created: 2026-02-03T20:23:46.060648Z
+    body: '# Decision\n\n## Context\nAgents were seeing overlap between  and , with different output schemas.\n\n## Decision\nUse  as the canonical retrieval flow. Keep  hidden as a compatibility alias that returns the same payload shape as .\n\n## Consequences\n- Less command-surface ambiguity for agents\n- One list payload schema to parse\n- Old scripts can still call  when needed'
+---
+op: item.create
+item:
+    id: L-01KGJJSTH3BGHG867K27XE9R77
+    type: lesson
+    topic: cli-ux
+    severity: high
+    oneliner: In --agent mode list defaults to chronological sort unless --sort is explicitly set
+    created: 2026-02-03T20:23:46.467095Z
+    body: Agent mode is intended for replayable machine workflows. Defaulting  to  in this mode keeps temporal ordering intuitive across mixed type prefixes (L-/D-/P-).
+---
+op: item.delete
+id: D-01KGJJST4CAHYRVNCEA4JM32HK
+---
+op: item.delete
+id: L-01KGJJSTH3BGHG867K27XE9R77
+---
+op: item.create
+item:
+    id: D-01KGJJTC7S5K77PPKX3A38M5SF
+    type: decision
+    topic: cli-ux
+    oneliner: Canonical retrieval command is list --topic; recall remains hidden compatibility alias
+    created: 2026-02-03T20:24:04.60141Z
+    body: |
+        # Decision
+
+        ## Context
+        Agents were seeing overlap between `recall` and `list --topic`, with different output schemas.
+
+        ## Decision
+        Use `list --topic` as the canonical retrieval flow. Keep `recall` hidden as a compatibility alias that returns the same payload shape as `list`.
+
+        ## Consequences
+        - Less command-surface ambiguity for agents
+        - One list payload schema to parse
+        - Old scripts can still call `recall` when needed
+---
+op: item.create
+item:
+    id: L-01KGJJTCB0C3NQBM72RJWN0M93
+    type: lesson
+    topic: cli-ux
+    severity: high
+    oneliner: In --agent mode list defaults to chronological sort unless --sort is explicitly set
+    created: 2026-02-03T20:24:04.704093Z
+    body: |
+        Agent mode is intended for replayable machine workflows. Defaulting `list` to `--sort created` in this mode keeps temporal ordering intuitive across mixed type prefixes (L-/D-/P-).

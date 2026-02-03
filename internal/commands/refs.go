@@ -17,14 +17,14 @@ Useful for understanding how knowledge items are connected:
 - referenced_by: items that reference this one (led to, influenced)
 
 Examples:
-  dory refs D001           # Show refs for decision D001
-  dory refs L003 --json    # Output as JSON for programmatic use`,
+  dory refs D-01JX...           # Show refs for a decision
+  dory refs L-01JX... --json    # Output as JSON for programmatic use`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
 		id := args[0]
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		refInfo, err := s.Refs(id)

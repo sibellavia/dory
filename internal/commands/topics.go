@@ -14,7 +14,7 @@ var topicsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 		topics, err := s.Topics()
 		CheckError(err)

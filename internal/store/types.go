@@ -32,7 +32,7 @@ type ListItem struct {
 	Domain    string          `json:"domain,omitempty" yaml:"domain,omitempty"`
 	Severity  models.Severity `json:"severity,omitempty" yaml:"severity,omitempty"`
 	Created   string          `json:"created" yaml:"created"`
-	CreatedAt time.Time       `json:"-" yaml:"-"`
+	CreatedAt string          `json:"created_at" yaml:"created_at"`
 }
 
 // TopicInfo represents a topic with its item count.
@@ -78,8 +78,8 @@ type ExpandResult struct {
 type ContextResult struct {
 	Project  string        `json:"project" yaml:"project"`
 	State    *ContextState `json:"state,omitempty" yaml:"state,omitempty"`
-	Critical []ListItem    `json:"critical,omitempty" yaml:"critical,omitempty"`
-	Recent   []ListItem    `json:"recent,omitempty" yaml:"recent,omitempty"`
+	Critical []ListItem    `json:"critical" yaml:"critical"`
+	Recent   []ListItem    `json:"recent" yaml:"recent"`
 	Topic    []ListItem    `json:"topic,omitempty" yaml:"topic,omitempty"`
 }
 

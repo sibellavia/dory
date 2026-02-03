@@ -19,7 +19,7 @@ var exportCmd = &cobra.Command{
 Examples:
   dory export                      # Export all knowledge
   dory export --topic architecture # Export by topic
-  dory export D001 D002 L001       # Export specific items
+  dory export D-01JX... D-01JY... L-01JX...  # Export specific items
   dory export --append CLAUDE.md   # Append to file`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
@@ -27,7 +27,7 @@ Examples:
 		topic, _ := cmd.Flags().GetString("topic")
 		appendFile, _ := cmd.Flags().GetString("append")
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		var output string
@@ -47,7 +47,7 @@ Examples:
 
 		if appendFile != "" {
 			// Append to file
-			f, err := os.OpenFile(appendFile, os.O_APPEND|os.O_WRONLY, 0644)
+			f, err := os.OpenFile(appendFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 			CheckError(err)
 			defer f.Close()
 

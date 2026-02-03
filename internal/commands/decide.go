@@ -37,7 +37,7 @@ Use --body - to read markdown content from stdin:
 			CheckError(fmt.Errorf("--topic is required"))
 		}
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		var oneliner, body string
@@ -103,6 +103,6 @@ func init() {
 	decideCmd.Flags().StringP("topic", "t", "", "Topic for the decision (required)")
 	decideCmd.Flags().StringP("rationale", "r", "", "Rationale for the decision")
 	decideCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	decideCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
+	decideCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L-01JX...,D-01JY...)")
 	RootCmd.AddCommand(decideCmd)
 }

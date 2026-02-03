@@ -24,6 +24,7 @@ var listCmd = &cobra.Command{
 		sinceStr, _ := cmd.Flags().GetString("since")
 		untilStr, _ := cmd.Flags().GetString("until")
 		sortKey, _ := cmd.Flags().GetString("sort")
+		sortKey = resolveListSort(cmd, sortKey)
 		desc, _ := cmd.Flags().GetBool("desc")
 
 		CheckError(validateItemType(itemType))
@@ -42,42 +43,13 @@ var listCmd = &cobra.Command{
 			CheckError(fmt.Errorf("--since must be earlier than or equal to --until"))
 		}
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 		items, err := s.List(topic, itemType, severity, since, until)
 		CheckError(err)
 		sortListItems(items, sortKey, desc)
 
-		OutputResult(cmd, items, func() {
-			if len(items) == 0 {
-				fmt.Println("No items found")
-				return
-			}
-
-			for _, item := range items {
-				topicStr := item.Topic
-				if topicStr == "" {
-					topicStr = item.Domain
-				}
-
-				severityIndicator := ""
-				if item.Severity != "" {
-					switch item.Severity {
-					case models.SeverityCritical:
-						severityIndicator = " [CRITICAL]"
-					case models.SeverityHigh:
-						severityIndicator = " [HIGH]"
-					}
-				}
-
-				fmt.Printf("%s  %-8s  %-15s  %s%s\n",
-					item.ID,
-					item.Type,
-					topicStr,
-					item.Oneliner,
-					severityIndicator)
-			}
-		})
+		OutputResult(cmd, items, func() { renderListHuman(items) })
 	},
 }
 
@@ -101,14 +73,56 @@ func validateListSort(sortKey string) error {
 	}
 }
 
+func resolveListSort(cmd *cobra.Command, sortKey string) string {
+	if sortKey == "" {
+		sortKey = "id"
+	}
+	if agentMode && !cmd.Flags().Changed("sort") {
+		// Agent mode defaults to chronological ordering for easier replay.
+		return "created"
+	}
+	return sortKey
+}
+
+func renderListHuman(items []store.ListItem) {
+	if len(items) == 0 {
+		fmt.Println("No items found")
+		return
+	}
+
+	for _, item := range items {
+		topicStr := item.Topic
+		if topicStr == "" {
+			topicStr = item.Domain
+		}
+
+		severityIndicator := ""
+		if item.Severity != "" {
+			switch item.Severity {
+			case models.SeverityCritical:
+				severityIndicator = " [CRITICAL]"
+			case models.SeverityHigh:
+				severityIndicator = " [HIGH]"
+			}
+		}
+
+		fmt.Printf("%s  %-8s  %-15s  %s%s\n",
+			item.ID,
+			item.Type,
+			topicStr,
+			item.Oneliner,
+			severityIndicator)
+	}
+}
+
 func sortListItems(items []store.ListItem, sortKey string, desc bool) {
 	compare := func(a, b store.ListItem) int {
 		switch sortKey {
 		case "created":
-			if a.CreatedAt.Before(b.CreatedAt) {
+			if a.CreatedAt < b.CreatedAt {
 				return -1
 			}
-			if a.CreatedAt.After(b.CreatedAt) {
+			if a.CreatedAt > b.CreatedAt {
 				return 1
 			}
 		}

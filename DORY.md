@@ -166,7 +166,7 @@ dory status --blocker "Waiting for API credentials from client"
 dory show D001
 
 # Get all knowledge for a topic
-dory recall networking
+dory list --topic networking
 
 # List all items
 dory list

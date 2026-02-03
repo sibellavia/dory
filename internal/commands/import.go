@@ -81,9 +81,10 @@ Examples:
 			CheckError(validateSeverityFlag(severity))
 		}
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
+		imported := make([]map[string]string, 0)
 		if split {
 			items, err := splitNumberedItems(body)
 			CheckError(err)
@@ -93,15 +94,38 @@ Examples:
 			for _, item := range items {
 				id, err := importItem(s, itemType, item.title, item.body, topic, domain, severity, refs)
 				CheckError(err)
-				fmt.Printf("Imported %s: %s\n", id, item.title)
+				imported = append(imported, map[string]string{
+					"id":       id,
+					"type":     itemType,
+					"oneliner": item.title,
+				})
 			}
-			fmt.Printf("\nImported %d items\n", len(items))
 		} else {
 			oneliner := extractOneliner(body, filePath)
 			id, err := importItem(s, itemType, oneliner, body, topic, domain, severity, refs)
 			CheckError(err)
-			fmt.Printf("Imported %s: %s\n", id, oneliner)
+			imported = append(imported, map[string]string{
+				"id":       id,
+				"type":     itemType,
+				"oneliner": oneliner,
+			})
 		}
+
+		result := map[string]interface{}{
+			"status": "imported",
+			"source": filePath,
+			"split":  split,
+			"count":  len(imported),
+			"items":  imported,
+		}
+		OutputResult(cmd, result, func() {
+			for _, item := range imported {
+				fmt.Printf("Imported %s: %s\n", item["id"], item["oneliner"])
+			}
+			if split {
+				fmt.Printf("\nImported %d items\n", len(imported))
+			}
+		})
 	},
 }
 

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/sibellavia/dory/internal/store"
@@ -9,37 +8,33 @@ import (
 )
 
 var recallCmd = &cobra.Command{
-	Use:   "recall <topic>",
-	Short: "Get all knowledge for a topic",
-	Long:  `Returns all lessons, decisions, and patterns for a specific topic with summaries.`,
-	Args:  cobra.ExactArgs(1),
+	Use:    "recall <topic>",
+	Short:  "Compatibility alias for list --topic <topic>",
+	Long:   `Compatibility alias for list --topic <topic>. Prefer dory list --topic for new workflows.`,
+	Hidden: true,
+	Args:   cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
 		topic := args[0]
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
-		format := GetOutputFormat(cmd)
+		sortKey, _ := cmd.Flags().GetString("sort")
+		sortKey = resolveListSort(cmd, sortKey)
+		desc, _ := cmd.Flags().GetBool("desc")
+		CheckError(validateListSort(sortKey))
 
-		if format == "json" || format == "yaml" {
-			items, err := s.List(topic, "", "", time.Time{}, time.Time{})
-			CheckError(err)
-
-			result := map[string]interface{}{
-				"topic": topic,
-				"items": items,
-			}
-			OutputResult(cmd, result, func() {})
-			return
-		}
-
-		content, err := s.Recall(topic)
+		items, err := s.List(topic, "", "", time.Time{}, time.Time{})
 		CheckError(err)
-		fmt.Print(content)
+		sortListItems(items, sortKey, desc)
+
+		OutputResult(cmd, items, func() { renderListHuman(items) })
 	},
 }
 
 func init() {
+	recallCmd.Flags().String("sort", "id", "Sort by: id, created")
+	recallCmd.Flags().Bool("desc", false, "Sort in descending order")
 	RootCmd.AddCommand(recallCmd)
 }

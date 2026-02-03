@@ -33,7 +33,7 @@ dory status --goal "Add file uploads" --progress "Endpoint done" --next "Add siz
 
 For small projects, a single markdown file works fine. Dory helps when knowledge grows:
 
-- **Queryable**: `dory recall auth` instead of scrolling through one big file
+- **Queryable**: `dory list --topic auth` instead of scrolling through one big file
 - **Incremental**: load the index, fetch full content only when needed
 - **Structured**: categorized by type, topic, severity
 - **Linked**: items reference each other with refs
@@ -99,7 +99,7 @@ Same flags work for `decide` and `pattern`.
 ```bash
 dory context            # Smart context for session start (state + critical + recent)
 dory context --topic db # Also include all database-related items
-dory recall <topic>     # All knowledge for a topic
+dory list --topic db    # All knowledge for a topic
 dory show <id>          # Full content for an item
 dory list               # List all items
 dory list --topic net   # Filter by topic
@@ -211,6 +211,7 @@ Protocol details and request/response contracts are documented in `docs/plugins/
 ### Output Formats
 
 All commands support `--json` and `--yaml` flags for machine-readable output.
+Use `--agent` to default to YAML output and disable interactive confirmation prompts (requires `--force` for destructive commands).
 
 ## Agent Integration
 

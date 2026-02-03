@@ -37,7 +37,7 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		result, err := s.Context(contextTopic, contextRecentDays, contextFull)

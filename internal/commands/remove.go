@@ -21,8 +21,9 @@ var removeCmd = &cobra.Command{
 
 		id := args[0]
 		force, _ := cmd.Flags().GetBool("force")
+		requireInteractive(force, "--force")
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		// Show item before removal

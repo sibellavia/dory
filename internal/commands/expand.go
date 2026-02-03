@@ -19,15 +19,15 @@ Traverses the reference graph to collect related knowledge in one call.
 Use --depth to control how many hops to traverse (default: 1).
 
 Examples:
-  dory expand D001             # D001 + directly connected items
-  dory expand D001 --depth 2   # Include items 2 hops away
-  dory expand D001 --json      # Output as JSON`,
+  dory expand D-01JX...             # Item + directly connected items
+  dory expand D-01JX... --depth 2   # Include items 2 hops away
+  dory expand D-01JX... --json      # Output as JSON`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
 		id := args[0]
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		result, err := s.Expand(id, expandDepth)

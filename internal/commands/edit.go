@@ -23,10 +23,10 @@ var editCmd = &cobra.Command{
 If flags are provided (--severity, --topic, etc.), updates metadata inline without opening the editor.
 
 Examples:
-  dory edit L001                      # Open in editor
-  dory edit L001 --severity critical  # Update severity inline
-  dory edit L001 --topic networking   # Update topic inline
-  dory edit D001 --refs L001,L002     # Update refs inline`,
+  dory edit L-01JX...                      # Open in editor
+  dory edit L-01JX... --severity critical  # Update severity inline
+  dory edit L-01JX... --topic networking   # Update topic inline
+  dory edit D-01JX... --refs L-01JX...,L-01JY...  # Update refs inline`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
@@ -54,7 +54,7 @@ Examples:
 }
 
 func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string, refs []string) {
-	s := store.New("")
+	s := store.New(doryRoot)
 	defer s.Close()
 
 	entry, err := s.GetEntry(id)
@@ -98,7 +98,7 @@ func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string
 }
 
 func editWithEditor(cmd *cobra.Command, id string) {
-	s := store.New("")
+	s := store.New(doryRoot)
 	defer s.Close()
 
 	// Get current content
@@ -229,6 +229,9 @@ func parseEditedContent(content string) (*doryfile.Entry, error) {
 	}
 	if entry.Type == "" {
 		return nil, fmt.Errorf("frontmatter must include type")
+	}
+	if entry.Created.IsZero() {
+		return nil, fmt.Errorf("frontmatter must include a valid created timestamp")
 	}
 	if err := validateItemType(entry.Type); err != nil {
 		return nil, err

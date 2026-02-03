@@ -27,7 +27,9 @@ func (s *Store) Context(topic string, recentDays int, full bool) (*ContextResult
 	recentCutoff := time.Now().AddDate(0, 0, -recentDays)
 	entries := s.df.Entries()
 
-	var critical, recent, topicItems []ListItem
+	critical := make([]ListItem, 0)
+	recent := make([]ListItem, 0)
+	topicItems := make([]ListItem, 0)
 
 	for id, entry := range entries {
 		item := toListItem(id, entry)
@@ -63,7 +65,7 @@ func (s *Store) Context(topic string, recentDays int, full bool) (*ContextResult
 	for _, item := range critical {
 		criticalIDs[item.ID] = true
 	}
-	var dedupedRecent []ListItem
+	dedupedRecent := make([]ListItem, 0)
 	for _, item := range recent {
 		if !criticalIDs[item.ID] {
 			dedupedRecent = append(dedupedRecent, item)

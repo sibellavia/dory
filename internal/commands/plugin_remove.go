@@ -19,6 +19,7 @@ var pluginRemoveCmd = &cobra.Command{
 
 		name := args[0]
 		force, _ := cmd.Flags().GetBool("force")
+		requireInteractive(force, "--force")
 
 		if !force {
 			fmt.Printf("Remove plugin %s from this project? [y/N] ", name)

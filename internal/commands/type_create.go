@@ -81,7 +81,7 @@ var typeCreateCmd = &cobra.Command{
 			"refs":     refs,
 		})
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		id, err := s.CreateCustom(itemType, oneliner, topic, body, refs)
@@ -119,7 +119,7 @@ var typeCreateCmd = &cobra.Command{
 func init() {
 	typeCreateCmd.Flags().StringP("topic", "t", "", "Optional topic for this item")
 	typeCreateCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	typeCreateCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
+	typeCreateCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L-01JX...,D-01JY...)")
 	typeCreateCmd.Flags().Duration("validate-timeout", 2*time.Second, "Custom type validation timeout")
 	typeCmd.AddCommand(typeCreateCmd)
 }

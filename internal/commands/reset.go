@@ -25,8 +25,9 @@ Use --full to completely reinitialize (like rm -rf .dory && dory init).`,
 
 		full, _ := cmd.Flags().GetBool("full")
 		force, _ := cmd.Flags().GetBool("force")
+		requireInteractive(force, "--force")
 
-		s := store.New("")
+		s := store.New(doryRoot)
 		defer s.Close()
 
 		// Count items to show user
@@ -76,7 +77,7 @@ Use --full to completely reinitialize (like rm -rf .dory && dory init).`,
 			}
 
 			// Reinitialize
-			s2 := store.New("")
+			s2 := store.New(doryRoot)
 			err := s2.Init(projectName, description)
 			CheckError(err)
 			s2.Close()
