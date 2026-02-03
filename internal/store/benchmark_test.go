@@ -72,15 +72,18 @@ func BenchmarkRandomAccess(b *testing.B) {
 	if err := s.Init("benchmark", ""); err != nil {
 		b.Fatal(err)
 	}
+	var ids []string
 	for j := 0; j < 100; j++ {
-		if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", nil); err != nil {
+		id, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", nil)
+		if err != nil {
 			b.Fatal(err)
 		}
+		ids = append(ids, id)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		id := fmt.Sprintf("L%03d", (i%100)+1)
+		id := ids[i%len(ids)]
 		if _, err := s.Show(id); err != nil {
 			b.Fatal(err)
 		}

@@ -1,7 +1,400 @@
+version: 2
+format: doryfile-v1
 project: dory
 state:
-    goal: Improve agent experience with graph traversal and context commands
-    progress: Implemented refs, expand, graph, context commands; updated README.md and DORY.md
+    goal: Track implementation and validation directly in .dory
+    progress: Added canonical tracking decision, validation lesson, and workflow pattern into local .dory
     next:
-        - Commit changes
-    last_updated: "2026-02-03T16:27:50+01:00"
+        - Continue implementation tasks while updating .dory items in real time
+        - Keep refs updated between decisions/lessons/patterns
+    working_files:
+        - internal/doryfile/open_scan.go
+        - internal/store/lifecycle.go
+        - internal/store/read_ops.go
+    open_questions:
+        - Do you want a recurring weekly summary entry pattern in .dory?
+    last_updated: "2026-02-03T19:11:24Z"
+applied_seq: 42
+log_offset: 39478
+heads:
+    D-01KGJ5XFHD1R0BDD9NVCARY3BH:
+        type: decision
+        topic: architecture
+        oneliner: Complete Phase 1 plugin lifecycle and protocol hardening
+        created: 2026-02-03T09:00:28.391381+01:00
+        refs:
+            - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+            - D-01KGJ5XFHDMJ37527WJVED81P1
+        body_offset: 297
+        body_len: 1637
+        last_event_seq: 42
+    D-01KGJ5XFHD3T054HGW6VQH1QAX:
+        type: decision
+        topic: architecture
+        oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
+        created: 2026-02-02T10:55:51.887336+01:00
+        body_offset: 1938
+        body_len: 1455
+        last_event_seq: 42
+    D-01KGJ5XFHD5PQ5CSCNNF93F3BV:
+        type: decision
+        topic: architecture
+        oneliner: Defer graph export formats (DOT, Mermaid) to future work
+        created: 2026-02-03T16:14:21.006613+01:00
+        refs:
+            - D-01KGJ5XFHDXV313S1P9S3538EA
+        body_offset: 3397
+        body_len: 897
+        last_event_seq: 42
+    D-01KGJ5XFHD6ASSYHZ8PN2DEJ1B:
+        type: decision
+        topic: architecture
+        oneliner: Separate index.yaml from knowledge files
+        created: 2026-01-31T00:00:00Z
+        body_offset: 4298
+        body_len: 484
+        last_event_seq: 42
+    D-01KGJ5XFHD7Y8ZK457TB96DJ1P:
+        type: decision
+        topic: architecture
+        oneliner: Full RFC3339 timestamps in .eng files
+        created: 2026-02-01T19:00:31+01:00
+        body_offset: 4786
+        body_len: 534
+        last_event_seq: 42
+    D-01KGJ5XFHDAG481R0MS6TAN99Q:
+        type: decision
+        topic: architecture
+        oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
+        created: 2026-02-01T00:00:00Z
+        body_offset: 5324
+        body_len: 1132
+        last_event_seq: 42
+    D-01KGJ5XFHDBH6RSCQ5GW9MDK2Q:
+        type: decision
+        topic: architecture
+        oneliner: Add dory context command for agent session start
+        created: 2026-02-03T15:28:44.264485+01:00
+        body_offset: 6460
+        body_len: 1446
+        last_event_seq: 42
+    D-01KGJ5XFHDBRS1NV1S1GQ3RQYW:
+        type: decision
+        topic: architecture
+        oneliner: Remove status field from decisions
+        created: 2026-02-01T19:00:49+01:00
+        body_offset: 7910
+        body_len: 473
+        last_event_seq: 42
+    D-01KGJ5XFHDC3YPDDPFT1D79RKB:
+        type: decision
+        topic: plugin
+        oneliner: Keep plugin scope to commands, hooks, and custom types; defer TUI capability
+        created: 2026-02-03T12:36:24.168464+01:00
+        refs:
+            - L-01KGJ5XFHD1P40J6ZY5GR1DRT8
+            - D-01KGJ5XFHDRSG1R872RQVATTEM
+        body_offset: 8387
+        body_len: 951
+        last_event_seq: 42
+    D-01KGJ5XFHDEZ82FD6K62C9TPG5:
+        type: decision
+        topic: branding
+        oneliner: Name the tool Dory after Finding Nemo character
+        created: 2026-01-31T00:00:00Z
+        body_offset: 9342
+        body_len: 492
+        last_event_seq: 42
+    D-01KGJ5XFHDGNTH7E446N8YGZPK:
+        type: decision
+        topic: integration
+        oneliner: Auto-append dory instructions on init
+        created: 2026-02-01T00:00:00Z
+        body_offset: 9838
+        body_len: 696
+        last_event_seq: 42
+    D-01KGJ5XFHDJ4ADNYHZQQY35AG9:
+        type: decision
+        topic: architecture
+        oneliner: Store oneliner in .eng frontmatter
+        created: 2026-01-31T00:00:00Z
+        body_offset: 10538
+        body_len: 457
+        last_event_seq: 42
+    D-01KGJ5XFHDJQ6TPD9EJWG33HYK:
+        type: decision
+        topic: architecture
+        oneliner: Prioritize advanced plugin capabilities after Phase 1 baseline
+        created: 2026-02-03T09:09:16.668894+01:00
+        refs:
+            - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+            - D-01KGJ5XFHDMJ37527WJVED81P1
+            - D-01KGJ5XFHD1R0BDD9NVCARY3BH
+        body_offset: 10999
+        body_len: 1361
+        last_event_seq: 42
+    D-01KGJ5XFHDMJ37527WJVED81P1:
+        type: decision
+        topic: architecture
+        oneliner: Implement Phase 1 plugin foundation (discovery, management, diagnostics, command execution)
+        created: 2026-02-03T08:46:18.228866+01:00
+        refs:
+            - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+        body_offset: 12364
+        body_len: 1954
+        last_event_seq: 42
+    D-01KGJ5XFHDPMP1D6A4733M6Z3R:
+        type: decision
+        topic: cli
+        oneliner: Remove --summary from learn/decide/pattern until it is stored
+        created: 2026-02-03T11:56:05.516498+01:00
+        refs:
+            - L-01KGJ5XFHDAZSKCDYMVDDNYWW9
+        body_offset: 14322
+        body_len: 714
+        last_event_seq: 42
+    D-01KGJ5XFHDQPP7NZ970S06NJ2M:
+        type: decision
+        topic: architecture
+        oneliner: Add bundled incident-validator plugin example and documentation
+        created: 2026-02-03T10:04:06.413145+01:00
+        refs:
+            - D-01KGJ5XFHD1R0BDD9NVCARY3BH
+            - D-01KGJ5XFHDRSG1R872RQVATTEM
+        body_offset: 15040
+        body_len: 1294
+        last_event_seq: 42
+    D-01KGJ5XFHDQSBQ7WE9Q6R1PQZD:
+        type: decision
+        topic: architecture
+        oneliner: Remove legacy backend and standardize on Store/New API
+        created: 2026-02-02T20:15:51.467774+01:00
+        refs:
+            - D-01KGJ5XFHD3T054HGW6VQH1QAX
+        body_offset: 16338
+        body_len: 501
+        last_event_seq: 42
+    D-01KGJ5XFHDRSG1R872RQVATTEM:
+        type: decision
+        topic: architecture
+        oneliner: Exclude plugin store backends for now; prioritize hooks/types/TUI
+        created: 2026-02-03T09:24:00.795839+01:00
+        refs:
+            - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+            - D-01KGJ5XFHDMJ37527WJVED81P1
+            - D-01KGJ5XFHD1R0BDD9NVCARY3BH
+            - D-01KGJ5XFHDJQ6TPD9EJWG33HYK
+        body_offset: 16843
+        body_len: 1439
+        last_event_seq: 42
+    D-01KGJ5XFHDSGAY329ZF77ZRTB5:
+        type: decision
+        topic: file-format
+        oneliner: YAML frontmatter + Markdown body for .eng files
+        created: 2026-01-31T00:00:00Z
+        body_offset: 18286
+        body_len: 503
+        last_event_seq: 42
+    D-01KGJ5XFHDSMFY8NMY5MGWAVR8:
+        type: decision
+        topic: architecture
+        oneliner: Introduce plugin system with phased rollout and process-isolated architecture
+        created: 2026-02-03T07:14:29+01:00
+        refs:
+            - D-01KGJ5XFHD3T054HGW6VQH1QAX
+            - D-01KGJ5XFHDQSBQ7WE9Q6R1PQZD
+        body_offset: 18793
+        body_len: 5092
+        last_event_seq: 42
+    D-01KGJ5XFHDX51S9W5W1C6FHKV8:
+        type: decision
+        topic: architecture
+        oneliner: Use Cobra for CLI framework
+        created: 2026-01-31T00:00:00Z
+        body_offset: 24714
+        body_len: 446
+        last_event_seq: 42
+    D-01KGJ5XFHDX2169GCGAJ0C3AKX:
+        type: decision
+        topic: architecture
+        oneliner: Single index.yaml as source of truth
+        created: 2026-02-01T00:00:00Z
+        refs:
+            - D-01KGJ5XFHD6ASSYHZ8PN2DEJ1B
+        body_offset: 23889
+        body_len: 821
+        last_event_seq: 42
+    D-01KGJ5XFHDXV313S1P9S3538EA:
+        type: decision
+        topic: architecture
+        oneliner: Add ref graph traversal commands for agents and humans
+        created: 2026-02-03T15:28:13.447215+01:00
+        refs:
+            - D-01KGJ5XFHDAG481R0MS6TAN99Q
+        body_offset: 25164
+        body_len: 2076
+        last_event_seq: 42
+    D-01KGJENA5FW5Y4XXFXYF4VVZ3H:
+        type: decision
+        topic: storage
+        oneliner: Use .dory as the canonical implementation tracker
+        created: 2026-02-03T19:11:24.335726Z
+        body_offset: 36570
+        body_len: 656
+        last_event_seq: 42
+    L-01KGJ5XFHD1P40J6ZY5GR1DRT8:
+        type: lesson
+        topic: plugin
+        severity: high
+        oneliner: Dropped plugin TUI capability until real interactive host exists
+        created: 2026-02-03T12:36:17.055908+01:00
+        refs:
+            - D-01KGJ5XFHDRSG1R872RQVATTEM
+            - D-01KGJ5XFHDPMP1D6A4733M6Z3R
+        body_offset: 27244
+        body_len: 1105
+        last_event_seq: 42
+    L-01KGJ5XFHD4NY0MRTHAYF0GYX7:
+        type: lesson
+        topic: architecture
+        severity: high
+        oneliner: Scan-on-open beats persistent offsets for corruption resistance
+        created: 2026-02-02T10:56:03.695826+01:00
+        body_offset: 28353
+        body_len: 1107
+        last_event_seq: 42
+    L-01KGJ5XFHD6NJMXH4RJF8VG02D:
+        type: lesson
+        topic: architecture
+        severity: high
+        oneliner: Rebuild loses oneliners if not stored in frontmatter
+        created: 2026-01-31T00:00:00Z
+        body_offset: 29464
+        body_len: 344
+        last_event_seq: 42
+    L-01KGJ5XFHD7520DHDRHBATFEYK:
+        type: lesson
+        topic: architecture
+        severity: critical
+        oneliner: Document store for AI agents - explore single-file, text-based, queryable format
+        created: 2026-02-01T22:02:21+01:00
+        body_offset: 29812
+        body_len: 964
+        last_event_seq: 42
+    L-01KGJ5XFHDAZSKCDYMVDDNYWW9:
+        type: lesson
+        topic: storage
+        severity: high
+        oneliner: Reusing deleted IDs required clearing tombstones on append
+        created: 2026-02-03T11:55:58.166029+01:00
+        refs:
+            - D-01KGJ5XFHD3T054HGW6VQH1QAX
+        body_offset: 30780
+        body_len: 775
+        last_event_seq: 42
+    L-01KGJ5XFHDEC4MRCAFY7B7W4EE:
+        type: lesson
+        topic: test
+        severity: normal
+        oneliner: Test heredoc approach
+        created: 2026-02-02T12:26:33.360858+01:00
+        body_offset: 31559
+        body_len: 364
+        last_event_seq: 42
+    L-01KGJ5XFHDPXK9QYYPZS5F6NMP:
+        type: lesson
+        topic: git
+        severity: normal
+        oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+        created: 2026-01-31T00:00:00Z
+        body_offset: 31927
+        body_len: 351
+        last_event_seq: 42
+    L-01KGJ5XFHDSSPAZ2NV2K3AEE4J:
+        type: lesson
+        topic: storage
+        severity: high
+        oneliner: Deterministic compaction requires stable ID ordering
+        created: 2026-02-02T20:15:51.749383+01:00
+        refs:
+            - L-01KGJ5XFHDY94GPTM4RZVZA4E1
+        body_offset: 32282
+        body_len: 400
+        last_event_seq: 42
+    L-01KGJ5XFHDTSBX8NRANHEZW71G:
+        type: lesson
+        topic: performance
+        severity: critical
+        oneliner: Test lesson for edit
+        created: 2026-02-02T12:06:59.204086+01:00
+        body_offset: 32686
+        body_len: 231
+        last_event_seq: 42
+    L-01KGJ5XFHDWCPPMK5616DT7XDR:
+        type: lesson
+        topic: architecture
+        severity: high
+        oneliner: 'Hot/cold storage: active files + archived bundles'
+        created: 2026-02-01T22:31:52+01:00
+        refs:
+            - L-01KGJ5XFHD7520DHDRHBATFEYK
+        body_offset: 32921
+        body_len: 1217
+        last_event_seq: 42
+    L-01KGJ5XFHDY94GPTM4RZVZA4E1:
+        type: lesson
+        topic: storage
+        severity: normal
+        oneliner: Emojis and special Unicode characters force YAML quoted style
+        created: 2026-02-02T12:21:49.796364+01:00
+        body_offset: 34142
+        body_len: 940
+        last_event_seq: 42
+    L-01KGJENA8KB3CS6WDT2970NXYJ:
+        type: lesson
+        topic: storage
+        severity: high
+        oneliner: Validated full CLI sweep and concurrent multi-agent writes
+        created: 2026-02-03T19:11:24.435605Z
+        refs:
+            - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+        body_offset: 37230
+        body_len: 939
+        last_event_seq: 42
+    P-01KGJ5XFHD22R0HGSNTBFW8RDA:
+        type: pattern
+        domain: cli
+        oneliner: Editor mode for humans, --body flag for agents
+        created: 2026-02-01T00:00:00Z
+        refs:
+            - P-01KGJ5XFHDHB2XG8N5NMAG6FR1
+        body_offset: 35086
+        body_len: 622
+        last_event_seq: 42
+    P-01KGJ5XFHDDNGGSDMG5WGRW075:
+        type: pattern
+        domain: cli
+        oneliner: All commands support --json and --yaml output flags
+        created: 2026-01-31T00:00:00Z
+        body_offset: 35712
+        body_len: 419
+        last_event_seq: 42
+    P-01KGJ5XFHDHB2XG8N5NMAG6FR1:
+        type: pattern
+        domain: cli
+        oneliner: Use --body flag or stdin for programmatic content input
+        created: 2026-01-31T00:00:00Z
+        body_offset: 36135
+        body_len: 431
+        last_event_seq: 42
+    P-01KGJENABRNSD6GW6RZ3BQQ9M3:
+        type: pattern
+        domain: workflow
+        oneliner: Record project progress with status + typed knowledge items
+        created: 2026-02-03T19:11:24.536648Z
+        refs:
+            - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+            - L-01KGJENA8KB3CS6WDT2970NXYJ
+        body_offset: 38173
+        body_len: 685
+        last_event_seq: 42

@@ -1,1108 +1,1156 @@
-DORY:v1
-===
-id: D008
-type: decision
-topic: integration
-oneliner: Auto-append dory instructions on init
-created: 2026-02-01T00:00:00Z
-body: |-
-    # Auto-append on init
-
-    ## Decision
-
-    When `dory init` runs, automatically append dory usage instructions to CLAUDE.md and/or AGENTS.md if they exist.
-
-    ## Behavior
-
-    - Checks both files (not all users use Claude Code)
-    - Idempotent - won't duplicate if instructions already present
-    - No prompt - just does it if file exists
-
-    ## Rationale
-
-    Tighter integration with existing agent instruction files reduces friction for adoption.
-
-===
-id: L001
-type: lesson
-topic: architecture
-severity: high
-oneliner: Rebuild loses oneliners if not stored in frontmatter
-created: 2026-01-31T00:00:00Z
-body: |
-    # Rebuild loses oneliners if not stored in frontmatter
-
-    ## Details
-
-    (Add details here)
-
-===
-id: D005
-type: decision
-topic: branding
-oneliner: Name the tool Dory after Finding Nemo character
-created: 2026-01-31T00:00:00Z
-body: |
-    # Name the tool Dory after Finding Nemo character
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Name the tool Dory after Finding Nemo character
-
-    ## Rationale
-
-    Ironic - the forgetful fish helps agents remember. Memorable and fun.
-
-===
-id: D004
-type: decision
-topic: architecture
-oneliner: Separate index.yaml from knowledge files
-created: 2026-01-31T00:00:00Z
-body: |
-    # Separate index.yaml from knowledge files
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Separate index.yaml from knowledge files
-
-    ## Rationale
-
-    Enables loading lightweight index at session start without reading all content
-
-===
-id: D001
-type: decision
-topic: architecture
-oneliner: Use Cobra for CLI framework
-created: 2026-01-31T00:00:00Z
-body: |
-    # Use Cobra for CLI framework
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Use Cobra for CLI framework
-
-    ## Rationale
-
-    Industry standard for Go CLIs, provides subcommands, flags, and help generation
-
-===
-id: D003
-type: decision
-topic: file-format
-oneliner: YAML frontmatter + Markdown body for .eng files
-created: 2026-01-31T00:00:00Z
-body: |
-    # YAML frontmatter + Markdown body for .eng files
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    YAML frontmatter + Markdown body for .eng files
-
-    ## Rationale
-
-    Machine-readable metadata with human-readable content, similar to Jekyll/Hugo
-
-===
-id: L007
-type: lesson
-topic: storage
-severity: normal
-oneliner: Emojis and special Unicode characters force YAML quoted style
-created: 2026-02-02T12:21:49.796364+01:00
-body: "# YAML Literal Style Limitation\n\n## Problem\nWhen body content contains emojis (e.g., \U0001F389) or other special Unicode characters, yaml.v3 cannot use literal block style and falls back to quoted style with Unicode escapes.\n\nExample:\n- Input: `## Success \U0001F389`\n- Stored as: `\"## Success \\U0001F389\"`\n\n## Impact\n- Raw knowledge.dory file is harder to read\n- Content is still valid and displays correctly via `dory show`\n\n## Potential Fixes\n1. Strip emojis before storing (lossy)\n2. Custom YAML encoder for body field\n3. Accept as limitation (current)\n\n## Workaround\nContent with emojis works correctly when retrieved. Only the raw file readability is affected."
-
-===
-id: L008
-type: lesson
-topic: test
-severity: normal
-oneliner: Test heredoc approach
-created: 2026-02-02T12:26:33.360858+01:00
-body: "# Test Entry\n\n## Section with emoji \U0001F389\nThis should work naturally.\n\n## Code example\n```go\nfunc main() {\n    fmt.Println(\"Hello\")\n}\n```\n"
-
-===
-id: P001
-type: pattern
-domain: cli
-oneliner: All commands support --json and --yaml output flags
-created: 2026-01-31T00:00:00Z
-body: |
-    # All commands support --json and --yaml output flags
-
-    ## Pattern
-
-    All commands support --json and --yaml output flags
-
-    ## Implementation
-
-    (Add implementation details here)
-
-===
-id: D011
-type: decision
-topic: architecture
-oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
-created: 2026-02-02T10:55:51.887336+01:00
-body: |
-    # Single-File Storage Format
-
-    ## Context
-    The original multi-file format (one .eng file per item) didn't scale well:
-    - 500 items = 501 files
-    - Git overhead with many small files
-    - Slower writes (file creation overhead)
-
-    ## Decision
-    Adopt a two-file format:
-    - `knowledge.dory`: Append-only content file with YAML entries separated by `===`
-    - `index.yaml`: Project metadata, state, and deleted IDs only
-
-    ## Key Design Choices
-    - No persistent offsets (rebuild index on open for corruption resistance)
-    - Append-only writes (no mid-file modifications)
-    - In-memory index with O(1) random access
-    - Deleted items tracked in index until compact
-
-    ## Benchmark Results
-    | Metric | Improvement |
-    |--------|-------------|
-    | Write speed | 16-180x faster |
-    | List speed | 18-36x faster |
-    | File count | O(1) vs O(n) |
-    | Open time | 2x slower (acceptable: 7ms vs 4ms at 500 items)
-
-    ## Trade-offs Accepted
-    - Slightly slower opens (full file scan)
-    - Less crash-safe (no fsync per write)
-    - Single growing file vs many small files
-
-===
-id: L005
-type: lesson
-topic: architecture
-severity: high
-oneliner: Scan-on-open beats persistent offsets for corruption resistance
-created: 2026-02-02T10:56:03.695826+01:00
-body: |
-    # Scan-on-Open Index Strategy
-
-    ## The Problem
-    Storing byte offsets in the index file creates fragility:
-    - Manual file edits corrupt the index
-    - Any byte shift invalidates all subsequent offsets
-    - Recovery requires full rebuild anyway
-
-    ## The Solution
-    Don't persist offsets at all. On file open:
-    1. Scan the knowledge file sequentially
-    2. Build in-memory index with offsets
-    3. Use in-memory offsets for O(1) random access
-
-    ## Performance Impact
-    - Open time: ~7ms for 500 items (acceptable)
-    - Random access: Still O(1) via in-memory map
-    - List operations: Faster (pure in-memory)
-
-    ## Lesson
-    Prefer robustness over micro-optimization. The 'slow' scan is imperceptible (<10ms), but corruption resistance is invaluable.
-
-===
-id: D010
-type: decision
-topic: architecture
-oneliner: Remove status field from decisions
-created: 2026-02-01T19:00:49+01:00
-body: |-
-    # Remove status field
-
-    ## Decision
-
-    Remove the `status: active` field from decision frontmatter.
-
-    ## Rationale
-
-    - Agents rarely update it
-    - Over-engineering for current use case
-    - Can be added back later if needed
-
-===
-id: L004
-type: lesson
-topic: architecture
-severity: high
-oneliner: 'Hot/cold storage: active files + archived bundles'
-created: 2026-02-01T22:31:52+01:00
-refs:
-    - L003
-body: |-
-    # Hot/Cold Hybrid Storage
-
-    ## Concept
-    - Hot path: individual .eng files (current behavior)
-    - Cold path: archived bundles (YAML stream, blob, etc.)
-
-    ## Structure
-    ```
-    .dory/
-    ├── index.yaml
-    ├── knowledge/        # hot - fast access, editable
-    │   ├── L045.eng
-    │   └── D012.eng
-    └── archive/          # cold - compact, bundled
-        └── 2026-Q1.yaml
-    ```
-
-    ## Commands
-    - `dory archive --before 2026-01-01`
-    - `dory archive --topic legacy-api`
-    - `dory unarchive L003`
-
-    ## Benefits
-    - Recent knowledge: fast O(1) access
-    - Old knowledge: compact, fewer files
-    - Best of both worlds
-
-    ## Similar patterns
-    - Git: loose objects vs packfiles
-    - Databases: hot/cold tiers
-    - Log systems: recent vs archived
-
-===
-id: P003
-type: pattern
-domain: cli
-oneliner: Editor mode for humans, --body flag for agents
-created: 2026-02-01T00:00:00Z
-refs:
-    - P002
-body: |-
-    # Dual Interface Pattern
-
-    ## For Humans
-
-    - Omit arguments to open $EDITOR with template
-    - `dory learn --topic foo` opens editor
-    - `dory edit D001` edits existing item
-
-    ## For Agents
-
-    - Use `--body "content"` flag for inline content
-    - Use `--body -` to pipe from stdin
-    - Programmatic, non-interactive
-
-===
-id: D009
-type: decision
-topic: architecture
-oneliner: Full RFC3339 timestamps in .eng files
-created: 2026-02-01T19:00:31+01:00
-body: |-
-    # Full timestamps
-
-    ## Decision
-
-    Store created field as RFC3339 format (e.g., 2026-02-01T18:58:21+01:00) instead of date-only.
-
-    ## Rationale
-
-    - Enables future temporal relations
-    - More precision for sorting and filtering
-    - Backward compatible - parser handles both formats
-
-===
-id: P002
-type: pattern
-domain: cli
-oneliner: Use --body flag or stdin for programmatic content input
-created: 2026-01-31T00:00:00Z
-body: |
-    # Use --body flag or stdin for programmatic content input
-
-    ## Pattern
-
-    Use --body flag or stdin for programmatic content input
-
-    ## Implementation
-
-    (Add implementation details here)
-
-===
-id: D002
-type: decision
-topic: architecture
-oneliner: Store oneliner in .eng frontmatter
-created: 2026-01-31T00:00:00Z
-body: |
-    # Store oneliner in .eng frontmatter
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Store oneliner in .eng frontmatter
-
-    ## Rationale
-
-    Enables rebuild command to reconstruct index without losing oneliners
-
-===
-id: L003
-type: lesson
-topic: architecture
-severity: critical
-oneliner: Document store for AI agents - explore single-file, text-based, queryable format
-created: 2026-02-01T22:02:21+01:00
-body: |-
-    # Document Store for AI Agents
-
-    ## Problem
-    Current file-per-item approach doesn't scale. Need a format that is:
-    - Single file (or few files)
-    - Text-based, human/agent readable
-    - Queryable with index support
-    - Git-friendly
-
-    ## Candidates
-    - YAML stream (--- separators)
-    - JSONL with index header
-    - Custom DSL optimized for agents
-    - Org-mode / outline style
-
-    ## Requirements
-    - Agents can cat/read directly
-    - Supports fast lookup by ID
-    - Greppable content
-    - Append-friendly for git diffs
-
-    ## Priority
-    High - could be the core innovation of Dory.
-
-===
-id: L002
-type: lesson
-topic: git
-severity: normal
-oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
-created: 2026-01-31T00:00:00Z
-body: |
-    # Use /dory not dory in .gitignore to avoid ignoring cmd/dory
-
-    ## Details
-
-    (Add details here)
-
-===
-id: L006
-type: lesson
-topic: performance
-severity: critical
-oneliner: Test lesson for edit
-created: 2026-02-02T12:06:59.204086+01:00
-body: Test body content
-
-===
-id: D006
-type: decision
-topic: architecture
-oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
-created: 2026-02-01T00:00:00Z
-body: |
-    # Refs + Edges Architecture
-
-    ## Decision
-
-    Use both refs (per-item) and edges (centralized) for knowledge relationships:
-    - `refs` field in .eng frontmatter is the source of truth
-    - `edges` section in index.yaml is auto-generated for quick agent access
-
-    ## Implementation
-
-    1. Add `refs: [ID1, ID2]` field to knowledge frontmatter
-    2. Add `--refs` flag to learn/decide/pattern commands
-    3. Add `edges` section to index.yaml
-    4. Rebuild command regenerates edges from refs
-
-    ## Example
-
-    ```yaml
-    # D002.eng frontmatter
-    refs: [L001]
-
-    # index.yaml
-    edges:
-      L001 -> D002
-    ```
-
-    ## Future Considerations
-
-    - Typed relationships: `refs: {led_to: [L001], relates_to: [P001]}`
-    - Bidirectional display in queries
-    - Graph visualization
-
-===
-id: D007
-type: decision
-topic: architecture
-oneliner: Single index.yaml as source of truth
-created: 2026-02-01T00:00:00Z
-refs:
-    - D004
-body: |-
-    # Single index.yaml as source of truth
-
-    ## Context
-
-    Previously had separate files: index.yaml, state.yaml, and BRIEF.md (auto-generated).
-    This caused duplication and sync issues - editing state.yaml required rebuilding BRIEF.md.
-
-    ## Decision
-
-    Merge state into index.yaml. Remove state.yaml and BRIEF.md entirely.
-    Agents read `cat .dory/index.yaml` directly.
-
-    ## Rationale
-
-    - Single source of truth
-    - No regeneration issues
-    - Simpler mental model
-    - Better DX - edits just work
-
-===
-id: D012
-type: decision
-topic: architecture
-oneliner: Remove legacy backend and standardize on Store/New API
-created: 2026-02-02T20:15:51.467774+01:00
-refs:
-    - D011
-body: |+
-    # Remove legacy backend and standardize on Store/New API
-
-    ## Context
-
-    (Add context here)
-
-    ## Decision
-
-    Remove legacy backend and standardize on Store/New API
-
-    ## Rationale
-
-
-
-===
-id: L009
-type: lesson
-topic: storage
-severity: high
-oneliner: Deterministic compaction requires stable ID ordering
-created: 2026-02-02T20:15:51.749383+01:00
-refs:
-    - L007
-body: |
-    # Deterministic compaction requires stable ID ordering
-
-    ## Details
-
-    (Add details here)
-
-===
-id: D013
-type: decision
-topic: architecture
-oneliner: Introduce plugin system with phased rollout and process-isolated architecture
-created: 2026-02-03T07:14:29.961672+01:00
-refs:
-    - D011
-    - D012
-body: |
-    # Plugin System Architecture and Rollout
-
-    ## Context
-    Dory should remain simple at its core while enabling advanced extension points for power users.
-
-    ## Decision
-    Adopt a plugin system based on process-isolated external plugins communicating over stdio using JSON-RPC style messages, delivered in phases.
-
-    ## Why this architecture
-    - Preserves a small, stable core
-    - Avoids Go `plugin` portability/version issues
-    - Provides crash isolation and safer failure modes
-    - Keeps plugin language/runtime flexible
-
-    ## Core principles
-    1. Core-first minimalism: storage format, default types, and core commands stay built-in.
-    2. Opt-in extensibility: plugins are disabled unless explicitly enabled per project.
-    3. Strict contracts: typed capability declarations and versioned plugin API.
-    4. Fail-soft behavior: plugin failures do not corrupt core storage.
-
-    ## Plugin model
-    - Plugins are executables with a manifest (`plugin.yaml`).
-    - Project-level enablement config: `.dory/plugins.yaml`.
-    - Host starts plugin processes and negotiates `api_version` and capabilities.
-
-    ### Capability families
-    - `commands`: add new CLI subcommands under `dory plugin run ...` and optional aliases.
-    - `hooks`: pre/post lifecycle hooks for core operations.
-    - `types`: custom knowledge types with schema + validation + rendering hints.
-    - `store` (future/advanced): optional backend adapter behind a strict store interface.
-
-    ## Safety and operational constraints
-    - Per-plugin timeout and max payload size
-    - Structured stderr capture + clear CLI warnings
-    - No implicit execution: explicit install + enable required
-    - API version compatibility checks at startup
-
-    ## Data and compatibility
-    - Core `.dory` format remains the source of truth.
-    - Plugin-provided metadata is namespaced to avoid key collisions.
-    - Unknown plugin metadata must be preserved on read/write (forward compatibility).
-
-    ## Phased rollout
-    ### Phase 1 (MVP): Plugin Host + Command Plugins
-    - Plugin manifest parsing
-    - Plugin discovery/enablement
-    - Stdio process host with request/response framing
-    - Basic plugin health checks and diagnostics command
-
-    ### Phase 2: Hooks + Custom Types
-    - Hook events: `before_create`, `after_create`, `before_remove`, `after_compact`
-    - Deterministic hook ordering and timeout semantics
-    - Custom type registration with schema validation and listing/show support
-
-    ### Phase 3: Store Adapter + TUI Integration Points
-    - Optional pluggable store adapter via strict interface and capability negotiation
-    - TUI-oriented extension APIs (query/render hooks), keeping CLI core independent
-    - Additional hardening: retry/backoff, richer telemetry, compatibility matrix tooling
-
-    ## Non-goals (initial)
-    - In-process dynamic library loading
-    - Plugin network access by default
-    - Making core commands depend on any specific plugin
-
-    ## Implementation notes for future work
-    - Add `internal/plugin/` packages: manifest, registry, host, protocol, hooks
-    - Add `dory plugin` command group: list, inspect, enable, disable, doctor
-    - Add integration tests with a fake plugin binary and protocol fixtures
-
-    ## Consequences
-    - Slight increase in complexity at boundaries (host/protocol), offset by a stable and minimal core.
-    - Enables meaningful ecosystem growth without coupling core development to plugin needs.
-
-===
-id: D013
-type: decision
-topic: architecture
-oneliner: Introduce plugin system with phased rollout and process-isolated architecture
-created: 2026-02-03T07:14:29+01:00
-refs:
-    - D011
-    - D012
-body: |4+
-    # Plugin System Architecture and Rollout
-
-    ## Context
-    Dory should remain simple at its core while enabling advanced extension points for power users.
-
-    ## Decision
-    Adopt a plugin system based on process-isolated external plugins communicating over stdio using JSON-RPC style messages, delivered in phases.
-
-    ## Why this architecture
-    - Preserves a small, stable core
-    - Avoids Go `plugin` portability/version issues
-    - Provides crash isolation and safer failure modes
-    - Keeps plugin language/runtime flexible
-
-    ## Core principles
-    1. Core-first minimalism: storage format, default types, and core commands stay built-in.
-    2. Opt-in extensibility: plugins are disabled unless explicitly enabled per project.
-    3. Strict contracts: typed capability declarations and versioned plugin API.
-    4. Fail-soft behavior: plugin failures do not corrupt core storage.
-
-    ## Plugin model
-    - Plugins are executables with a manifest (`plugin.yaml`).
-    - Project-level enablement config: `.dory/plugins.yaml`.
-    - Host starts plugin processes and negotiates `api_version` and capabilities.
-
-    ### Capability families
-    - `commands`: add new CLI subcommands under `dory plugin run ...` and optional aliases.
-    - `hooks`: pre/post lifecycle hooks for core operations.
-    - `types`: custom knowledge types with schema + validation + rendering hints.
-    - `store` (future/advanced): optional backend adapter behind a strict store interface.
-
-    ## Safety and operational constraints
-    - Per-plugin timeout and max payload size
-    - Structured stderr capture + clear CLI warnings
-    - No implicit execution: explicit install + enable required
-    - API version compatibility checks at startup
-
-    ## Data and compatibility
-    - Core `.dory` format remains the source of truth.
-    - Plugin-provided metadata is namespaced to avoid key collisions.
-    - Unknown plugin metadata must be preserved on read/write (forward compatibility).
-
-    ## Phased rollout
-    ### Phase 1 (MVP): Plugin Host + Command Plugins
-    - Plugin manifest parsing
-    - Plugin discovery/enablement
-    - Stdio process host with request/response framing
-    - Basic plugin health checks and diagnostics command
-
-    ### Phase 2: Hooks + Custom Types
-    - Hook events: `before_create`, `after_create`, `before_remove`, `after_compact`
-    - Deterministic hook ordering and timeout semantics
-    - Custom type registration with schema validation and listing/show support
-
-    ### Phase 3: Store Adapter + TUI Integration Points
-    - Optional pluggable store adapter via strict interface and capability negotiation
-    - TUI-oriented extension APIs (query/render hooks), keeping CLI core independent
-    - Additional hardening: retry/backoff, richer telemetry, compatibility matrix tooling
-
-    ## Non-goals (initial)
-    - In-process dynamic library loading
-    - Plugin network access by default
-    - Making core commands depend on any specific plugin
-
-    ## Implementation notes for future work
-    - Add `internal/plugin/` packages: manifest, registry, host, protocol, hooks
-    - Add `dory plugin` command group: list, inspect, enable, disable, doctor
-    - Add integration tests with a fake plugin binary and protocol fixtures
-
-    ## Consequences
-    - Slight increase in complexity at boundaries (host/protocol), offset by a stable and minimal core.
-    - Enables meaningful ecosystem growth without coupling core development to plugin needs.
-
-    ## Implementation Status (2026-02-03)
-
-    ### Completed in this branch (Phase 1 + 1.5)
-    - Added plugin core scaffolding in `internal/plugin/` (`manifest`, `config`, `discovery`, `protocol`, `host`).
-    - Added `dory plugin` command group with: `list`, `inspect`, `enable`, `disable`, `doctor`, and `run`.
-    - Added project plugin enablement config at `.dory/plugins.yaml`.
-    - Implemented process-isolated request/response execution for `dory.health` and `dory.command.run`.
-    - Added plugin-focused tests (manifest/config/discovery/host/run command resolution).
-    - Added README docs for plugin manifest layout and command usage.
-
-    ### Still pending to fully complete Phase 1
-    - Install/remove lifecycle commands (`dory plugin add/remove` style UX).
-    - Strict API handshake enforcement with explicit version compatibility errors.
-    - Formal protocol documentation and fixture-based integration tests.
-    - Explicit trust/safety UX for first-time plugin enablement.
-
-
-===
-id: D014
-type: decision
-topic: architecture
-oneliner: Implement Phase 1 plugin foundation (discovery, management, diagnostics, command execution)
-created: 2026-02-03T08:46:18.228866+01:00
-refs:
-    - D013
-body: |
-    # Phase 1 Plugin Foundation Implemented
-
-    ## Context
-    D013 defined the long-term plugin architecture and phased rollout. We needed a concrete first implementation that is useful immediately while keeping the core stable.
-
-    ## Decision
-    Ship a pragmatic Phase 1 + 1.5 baseline focused on:
-    - discovery and project-local enablement
-    - plugin management/inspection diagnostics
-    - process-isolated command capability execution
-
-    ## Implemented Scope
-    - `internal/plugin/` package for manifest/config/discovery/protocol/host primitives.
-    - `dory plugin` command group with `list`, `inspect`, `enable`, `disable`, `doctor`, `run`.
-    - JSON request/response line protocol for `dory.health` and `dory.command.run`.
-    - Per-request timeout controls for health and run flows.
-    - Project-local plugin enablement persisted in `.dory/plugins.yaml`.
-
-    ## Technical Notes
-    - Execution model remains short-lived process per request (simple and robust).
-    - Plugin capabilities are declared in manifest and validated at runtime.
-    - Unknown plugins are never auto-enabled; explicit enable is required.
-
-    ## Why this now
-    - Gives immediate extensibility value with minimal surface area.
-    - Preserves Dory's core while validating architecture with real usage.
-    - Creates a stable base for hooks/custom types in Phase 2.
-
-    ## Follow-up
-    - Add install/remove lifecycle commands.
-    - Enforce explicit API handshake compatibility errors.
-    - Add protocol docs + integration fixtures.
-
-===
-id: D015
-type: decision
-topic: architecture
-oneliner: Complete Phase 1 plugin lifecycle and protocol hardening
-created: 2026-02-03T09:00:28.391381+01:00
-refs:
-    - D013
-    - D014
-body: |
-    # Phase 1 Plugin Follow-up Completed
-
-    ## Context
-    D014 tracked three immediate follow-ups: install/remove lifecycle, explicit API compatibility enforcement, and protocol documentation with fixtures.
-
-    ## Decision
-    Implement all three follow-ups in the plugin branch now to stabilize the Phase 1 baseline before Phase 2 work.
-
-    ## Implemented
-    - Added plugin lifecycle commands: `dory plugin install` and `dory plugin remove`.
-    - Added install/remove internals in `internal/plugin/install.go` and `internal/plugin/remove.go`.
-    - Enforced API compatibility via `ValidateAPIVersion` in manifest validation and host invocation.
-    - Hardened manifest validation for safe plugin names.
-    - Fixed relative plugin command execution so installed plugins can use `./plugin.sh` in manifests.
-    - Added protocol documentation at `docs/plugins/protocol.md`.
-    - Added fixture-based protocol integration test in `internal/plugin/protocol_integration_test.go` with `internal/plugin/testdata/fixture-plugin.sh`.
-
-    ## Consequences
-    - Plugin lifecycle is now usable end-to-end in local projects.
-    - Compatibility errors are explicit and early.
-    - Protocol behavior is documented and verified with executable fixtures.
-
-===
-id: D016
-type: decision
-topic: architecture
-oneliner: Prioritize advanced plugin capabilities after Phase 1 baseline
-created: 2026-02-03T09:09:16.668894+01:00
-refs:
-    - D013
-    - D014
-    - D015
-body: |
-    # Advanced Plugin Roadmap Priority
-
-    ## Context
-    Phase 1 and 1.5 established plugin lifecycle, discovery, diagnostics, and command execution.
-
-    ## Decision
-    Prioritize implementation of advanced extension capabilities next:
-    - hooks
-    - custom knowledge types
-    - custom store backends
-    - TUI extension points
-
-    ## Clarification: custom store backend
-    A custom store backend means a plugin can implement the persistence layer behind Dory's store interface while core CLI semantics stay stable.
-
-    Examples of potential backends:
-    - alternative local formats (SQLite, structured files)
-    - remote/team-backed persistence
-    - encrypted-at-rest backends
-
-    ## Constraints
-    - Keep core behavior deterministic and backward-compatible.
-    - Core `.dory` format remains first-class unless explicitly configured otherwise.
-    - Plugin failures must not corrupt project knowledge.
-
-===
-id: D017
-type: decision
-topic: architecture
-oneliner: Exclude plugin store backends for now; prioritize hooks/types/TUI
-created: 2026-02-03T09:24:00.795839+01:00
-refs:
-    - D013
-    - D014
-    - D015
-    - D016
-body: |
-    # Plugin Scope Decision (Phase 2)
-
-    ## Context
-    Store backend plugins were considered as part of long-term plugin architecture, but they carry high data-integrity and support risks this early.
-
-    ## Decision
-    Keep `.dory` as the single storage backend for now and do not support plugin-provided store backends.
-
-    Prioritize implementation work in this order:
-    1. Hooks
-    2. Custom knowledge types
-    3. TUI extension points
-
-    ## Rationale
-    - Preserves deterministic, stable core persistence while plugin APIs mature.
-    - Reduces risk of data loss/corruption from third-party backend implementations.
-    - Delivers high-value extensibility (automation + domain modeling + UX hooks) with lower operational risk.
-
-    ## Consequences
-    - `capabilities.store` is explicitly rejected in plugin manifests for now.
-    - Plugin roadmap remains modular; backend extensibility can be revisited later behind stricter compatibility guarantees.
-
-===
-id: D018
-type: decision
-topic: architecture
-oneliner: Add bundled incident-validator plugin example and documentation
-created: 2026-02-03T10:04:06.413145+01:00
-refs:
-    - D015
-    - D017
-body: |
-    # Bundled Plugin Example for Custom Type Validation
-
-    ## Context
-    After introducing plugin-side custom type validation (`dory.type.validate`), users need a concrete reference implementation to understand how to build and test plugins.
-
-    ## Decision
-    Bundle an executable example plugin under `examples/plugins/incident-validator` and document usage in `README.md`.
-
-    ## What is included
-    - `plugin.yaml` with `capabilities.types: ["incident"]`
-    - `plugin.sh` implementing:
-      - `dory.health`
-      - `dory.type.validate`
-    - validation rules for `incident` payloads:
-      - `topic` required
-      - `body` required
-      - `body` must contain `## Impact`
-
-    ## Consequences
-    - New plugin authors can copy and adapt a working reference.
-    - Validation flow can be tested quickly with local `dory plugin install ... --enable` and `dory type create ...` commands.
-
-===
-id: L010
-type: lesson
-topic: storage
-severity: high
-oneliner: Reusing deleted IDs required clearing tombstones on append
-created: 2026-02-03T11:55:58.166029+01:00
-refs:
-    - D011
-body: |-
-    # Reused IDs and Tombstones
-
-    ## Symptom
-    After deleting an item and creating a new item with the same ID, the new item disappeared after reopen.
-
-    ## Root Cause
-    Deleted IDs were tracked in `index.yaml.deleted` and scan skipped all entries with those IDs, including newly appended ones.
-
-    ## Fix
-    When appending an entry, remove its ID from deleted tombstones and persist index. Added regression tests for delete->reuse->reopen.
-
-===
-id: D019
-type: decision
-topic: cli
-oneliner: Remove --summary from learn/decide/pattern until it is stored
-created: 2026-02-03T11:56:05.516498+01:00
-refs:
-    - L010
-body: |-
-    # Remove Unused Summary Flag
-
-    ## Context
-    `--summary` was parsed in create commands but not persisted in storage, creating misleading UX.
-
-    ## Decision
-    Remove `--summary` from `learn`, `decide`, and `pattern` for now.
-
-    ## Rationale
-    - Avoids false expectations
-    - Keeps CLI behavior aligned with persisted model
-    - Can be reintroduced later with explicit schema support
-
-===
-id: L011
-type: lesson
-topic: plugin
-severity: high
-oneliner: Dropped plugin TUI capability until real interactive host exists
-created: 2026-02-03T12:36:17.055908+01:00
-refs:
-    - D017
-    - D019
-body: |-
-    # Remove TUI Capability for Now
-
-    ## Context
-    Plugin `tui` capability only provided declaration/discovery metadata and did not correspond to a real interactive TUI runtime.
-
-    ## Decision
-    Remove all TUI capability code paths, CLI surfaces, and examples for now.
-
-    ## Scope Removed
-    - `capabilities.tui` in plugin manifest model
-    - `dory plugin tui` command
-    - TUI discovery code and tests
-    - `examples/plugins/tui-insights`
-
-    ## Rationale
-    - Keep plugin API honest: only ship capabilities with real runtime behavior
-    - Reduce maintenance surface while focusing on command/hooks/custom-type stability
-    - Reintroduce TUI later with a concrete execution/render contract
-
-===
-id: D020
-type: decision
-topic: plugin
-oneliner: Keep plugin scope to commands, hooks, and custom types; defer TUI capability
-created: 2026-02-03T12:36:24.168464+01:00
-refs:
-    - L011
-    - D017
-body: |-
-    # Plugin Scope Clarification
-
-    ## Context
-    After experimenting with a terminal dashboard, we confirmed there is no first-class interactive TUI host API yet.
-
-    ## Decision
-    Keep plugin scope to:
-    - custom commands
-    - lifecycle hooks
-    - custom knowledge type validation
-
-    Defer TUI capability until a real host/render/event contract is designed.
-
-    ## Consequences
-    - Cleaner and more truthful plugin surface area
-    - Fewer half-implemented extension points
-    - Future TUI work can return as a focused design/implementation track
-
-===
-id: D021
-type: decision
-topic: architecture
-oneliner: Add ref graph traversal commands for agents and humans
-created: 2026-02-03T15:28:13.447215+01:00
-refs:
-    - D006
-body: |
-    # Ref Graph Traversal Commands
-
-    ## Context
-    Refs between knowledge items exist but are underutilized. Agents need to understand relationships, expand context, and trace lineage. Humans want visualization.
-
-    ## Decision
-    Add dual-mode graph commands that serve both agents and humans:
-
-    ### For Agents: `dory refs`
-    Show relationships in structured text:
-    ```bash
-    dory refs D001
-    ```
-    ```
-    D001: Use Redis for caching
-      ← caused by: L001 (Connection pool exhaustion under load)
-      ← caused by: L003 (Memory limits hit with in-process cache)
-      → led to: P002 (All cache keys use namespace prefix)
-      → led to: D005 (Session storage uses same Redis instance)
-    ```
-
-    ### For Agents: `dory expand`
-    Get an item plus all connected items in one call:
-    ```bash
-    dory expand D001              # 1 hop (direct refs)
-    dory expand D001 --depth 2    # 2 hops
-    ```
-    Returns full content of the item and all connected items. One command, complete context.
-
-    ### For Humans: `dory graph`
-    Export for visualization tools:
-    ```bash
-    dory graph --dot > knowledge.dot    # Graphviz
-    dory graph --mermaid                # Mermaid diagrams
-    ```
-
-    ## Implementation
-    Build bidirectional ref index on store open:
-    - `RefsTo`: what an item references
-    - `ReferencedBy`: what references an item
-
-    BFS traversal for expand with depth limit.
-
-    ## Rationale
-    - Refs data already exists, just needs surfacing
-    - Agents get context expansion in one command
-    - Humans get visual exploration
-    - Minimal new storage, just traversal logic
-
-===
-id: D022
-type: decision
-topic: architecture
-oneliner: Add dory context command for agent session start
-created: 2026-02-03T15:28:44.264485+01:00
-body: |
-    # Agent Context Command
-
-    ## Context
-    At session start, agents need to understand project state and relevant knowledge. Currently requires multiple commands:
-    1. `cat .dory/index.yaml` for state
-    2. `dory list` to see what exists
-    3. `dory recall <topic>` or `dory show <id>` for relevant items
-
-    ## Decision
-    Add `dory context` command that returns a smart, token-efficient context dump:
-
-    ```bash
-    dory context                    # State + recent items + critical lessons
-    dory context --topic auth       # State + everything related to auth
-    dory context --full             # Everything (for small knowledge bases)
-    ```
-
-    ## Output Design
-    Single payload optimized for agent consumption:
-    - Current session state (goal, progress, next, blockers)
-    - Critical/high severity lessons (always included)
-    - Recent items (last N days or sessions)
-    - Topic-filtered items if --topic specified
-
-    ## Rationale
-    - Reduces session start from 3+ commands to 1
-    - Token-efficient: returns what matters, not everything
-    - Agents can immediately understand project context
-
-===
-id: D023
-type: decision
-topic: architecture
-oneliner: Defer graph export formats (DOT, Mermaid) to future work
-created: 2026-02-03T16:14:21.006613+01:00
-refs:
-    - D021
-body: |
-    # Defer Graph Export Formats
-
-    ## Context
-    Implemented terminal graph visualization for `dory graph`. Also added --dot and --mermaid export flags.
-
-    ## Decision
-    Remove export flags for now to keep the command focused. Terminal visualization is the priority.
-
-    ## Deferred Features
-    - `--dot` - Export to Graphviz DOT format
-    - `--mermaid` - Export to Mermaid diagram format
-
-    ## Rationale
-    - Terminal visualization covers the immediate need
-    - Export formats add complexity without current use case
-    - Can be re-added when needed
-
+DORYFILE:v1
+---
+op: state.update
+state:
+    goal: Improve agent experience with graph traversal and context commands
+    progress: Implemented refs, expand, graph, context commands; updated README.md and DORY.md
+    next:
+        - Commit changes
+    last_updated: "2026-02-03T16:27:50+01:00"
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHD1R0BDD9NVCARY3BH
+    type: decision
+    topic: architecture
+    oneliner: Complete Phase 1 plugin lifecycle and protocol hardening
+    created: 2026-02-03T09:00:28.391381+01:00
+    refs:
+        - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+        - D-01KGJ5XFHDMJ37527WJVED81P1
+    body: |-
+        # Phase 1 Plugin Follow-up Completed
+
+        ## Context
+        D014 tracked three immediate follow-ups: install/remove lifecycle, explicit API compatibility enforcement, and protocol documentation with fixtures.
+
+        ## Decision
+        Implement all three follow-ups in the plugin branch now to stabilize the Phase 1 baseline before Phase 2 work.
+
+        ## Implemented
+        - Added plugin lifecycle commands: `dory plugin install` and `dory plugin remove`.
+        - Added install/remove internals in `internal/plugin/install.go` and `internal/plugin/remove.go`.
+        - Enforced API compatibility via `ValidateAPIVersion` in manifest validation and host invocation.
+        - Hardened manifest validation for safe plugin names.
+        - Fixed relative plugin command execution so installed plugins can use `./plugin.sh` in manifests.
+        - Added protocol documentation at `docs/plugins/protocol.md`.
+        - Added fixture-based protocol integration test in `internal/plugin/protocol_integration_test.go` with `internal/plugin/testdata/fixture-plugin.sh`.
+
+        ## Consequences
+        - Plugin lifecycle is now usable end-to-end in local projects.
+        - Compatibility errors are explicit and early.
+        - Protocol behavior is documented and verified with executable fixtures.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHD3T054HGW6VQH1QAX
+    type: decision
+    topic: architecture
+    oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
+    created: 2026-02-02T10:55:51.887336+01:00
+    body: |-
+        # Single-File Storage Format
+
+        ## Context
+        The original multi-file format (one .eng file per item) didn't scale well:
+        - 500 items = 501 files
+        - Git overhead with many small files
+        - Slower writes (file creation overhead)
+
+        ## Decision
+        Adopt a two-file format:
+        - `knowledge.dory`: Append-only content file with YAML entries separated by `===`
+        - `index.yaml`: Project metadata, state, and deleted IDs only
+
+        ## Key Design Choices
+        - No persistent offsets (rebuild index on open for corruption resistance)
+        - Append-only writes (no mid-file modifications)
+        - In-memory index with O(1) random access
+        - Deleted items tracked in index until compact
+
+        ## Benchmark Results
+        | Metric | Improvement |
+        |--------|-------------|
+        | Write speed | 16-180x faster |
+        | List speed | 18-36x faster |
+        | File count | O(1) vs O(n) |
+        | Open time | 2x slower (acceptable: 7ms vs 4ms at 500 items)
+
+        ## Trade-offs Accepted
+        - Slightly slower opens (full file scan)
+        - Less crash-safe (no fsync per write)
+        - Single growing file vs many small files
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHD5PQ5CSCNNF93F3BV
+    type: decision
+    topic: architecture
+    oneliner: Defer graph export formats (DOT, Mermaid) to future work
+    created: 2026-02-03T16:14:21.006613+01:00
+    refs:
+        - D-01KGJ5XFHDXV313S1P9S3538EA
+    body: |-
+        # Defer Graph Export Formats
+
+        ## Context
+        Implemented terminal graph visualization for `dory graph`. Also added --dot and --mermaid export flags.
+
+        ## Decision
+        Remove export flags for now to keep the command focused. Terminal visualization is the priority.
+
+        ## Deferred Features
+        - `--dot` - Export to Graphviz DOT format
+        - `--mermaid` - Export to Mermaid diagram format
+
+        ## Rationale
+        - Terminal visualization covers the immediate need
+        - Export formats add complexity without current use case
+        - Can be re-added when needed
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHD6ASSYHZ8PN2DEJ1B
+    type: decision
+    topic: architecture
+    oneliner: Separate index.yaml from knowledge files
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Separate index.yaml from knowledge files
+
+        ## Context
+
+        (Add context here)
+
+        ## Decision
+
+        Separate index.yaml from knowledge files
+
+        ## Rationale
+
+        Enables loading lightweight index at session start without reading all content
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHD7Y8ZK457TB96DJ1P
+    type: decision
+    topic: architecture
+    oneliner: Full RFC3339 timestamps in .eng files
+    created: 2026-02-01T19:00:31+01:00
+    body: |-
+        # Full timestamps
+
+        ## Decision
+
+        Store created field as RFC3339 format (e.g., 2026-02-01T18:58:21+01:00) instead of date-only.
+
+        ## Rationale
+
+        - Enables future temporal relations
+        - More precision for sorting and filtering
+        - Backward compatible - parser handles both formats
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDAG481R0MS6TAN99Q
+    type: decision
+    topic: architecture
+    oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
+    created: 2026-02-01T00:00:00Z
+    body: |-
+        # Refs + Edges Architecture
+
+        ## Decision
+
+        Use both refs (per-item) and edges (centralized) for knowledge relationships:
+        - `refs` field in .eng frontmatter is the source of truth
+        - `edges` section in index.yaml is auto-generated for quick agent access
+
+        ## Implementation
+
+        1. Add `refs: [ID1, ID2]` field to knowledge frontmatter
+        2. Add `--refs` flag to learn/decide/pattern commands
+        3. Add `edges` section to index.yaml
+        4. Rebuild command regenerates edges from refs
+
+        ## Example
+
+        ```yaml
+        # D002.eng frontmatter
+        refs: [L001]
+
+        # index.yaml
+        edges:
+          L001 -> D002
+        ```
+
+        ## Future Considerations
+
+        - Typed relationships: `refs: {led_to: [L001], relates_to: [P001]}`
+        - Bidirectional display in queries
+        - Graph visualization
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDBH6RSCQ5GW9MDK2Q
+    type: decision
+    topic: architecture
+    oneliner: Add dory context command for agent session start
+    created: 2026-02-03T15:28:44.264485+01:00
+    body: |-
+        # Agent Context Command
+
+        ## Context
+        At session start, agents need to understand project state and relevant knowledge. Currently requires multiple commands:
+        1. `cat .dory/index.yaml` for state
+        2. `dory list` to see what exists
+        3. `dory recall <topic>` or `dory show <id>` for relevant items
+
+        ## Decision
+        Add `dory context` command that returns a smart, token-efficient context dump:
+
+        ```bash
+        dory context                    # State + recent items + critical lessons
+        dory context --topic auth       # State + everything related to auth
+        dory context --full             # Everything (for small knowledge bases)
+        ```
+
+        ## Output Design
+        Single payload optimized for agent consumption:
+        - Current session state (goal, progress, next, blockers)
+        - Critical/high severity lessons (always included)
+        - Recent items (last N days or sessions)
+        - Topic-filtered items if --topic specified
+
+        ## Rationale
+        - Reduces session start from 3+ commands to 1
+        - Token-efficient: returns what matters, not everything
+        - Agents can immediately understand project context
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDBRS1NV1S1GQ3RQYW
+    type: decision
+    topic: architecture
+    oneliner: Remove status field from decisions
+    created: 2026-02-01T19:00:49+01:00
+    body: |-
+        # Remove status field
+
+        ## Decision
+
+        Remove the `status: active` field from decision frontmatter.
+
+        ## Rationale
+
+        - Agents rarely update it
+        - Over-engineering for current use case
+        - Can be added back later if needed
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDC3YPDDPFT1D79RKB
+    type: decision
+    topic: plugin
+    oneliner: Keep plugin scope to commands, hooks, and custom types; defer TUI capability
+    created: 2026-02-03T12:36:24.168464+01:00
+    refs:
+        - L-01KGJ5XFHD1P40J6ZY5GR1DRT8
+        - D-01KGJ5XFHDRSG1R872RQVATTEM
+    body: |-
+        # Plugin Scope Clarification
+
+        ## Context
+        After experimenting with a terminal dashboard, we confirmed there is no first-class interactive TUI host API yet.
+
+        ## Decision
+        Keep plugin scope to:
+        - custom commands
+        - lifecycle hooks
+        - custom knowledge type validation
+
+        Defer TUI capability until a real host/render/event contract is designed.
+
+        ## Consequences
+        - Cleaner and more truthful plugin surface area
+        - Fewer half-implemented extension points
+        - Future TUI work can return as a focused design/implementation track
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDEZ82FD6K62C9TPG5
+    type: decision
+    topic: branding
+    oneliner: Name the tool Dory after Finding Nemo character
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Name the tool Dory after Finding Nemo character
+
+        ## Context
+
+        (Add context here)
+
+        ## Decision
+
+        Name the tool Dory after Finding Nemo character
+
+        ## Rationale
+
+        Ironic - the forgetful fish helps agents remember. Memorable and fun.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDGNTH7E446N8YGZPK
+    type: decision
+    topic: integration
+    oneliner: Auto-append dory instructions on init
+    created: 2026-02-01T00:00:00Z
+    body: |-
+        # Auto-append on init
+
+        ## Decision
+
+        When `dory init` runs, automatically append dory usage instructions to CLAUDE.md and/or AGENTS.md if they exist.
+
+        ## Behavior
+
+        - Checks both files (not all users use Claude Code)
+        - Idempotent - won't duplicate if instructions already present
+        - No prompt - just does it if file exists
+
+        ## Rationale
+
+        Tighter integration with existing agent instruction files reduces friction for adoption.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDJ4ADNYHZQQY35AG9
+    type: decision
+    topic: architecture
+    oneliner: Store oneliner in .eng frontmatter
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Store oneliner in .eng frontmatter
+
+        ## Context
+
+        (Add context here)
+
+        ## Decision
+
+        Store oneliner in .eng frontmatter
+
+        ## Rationale
+
+        Enables rebuild command to reconstruct index without losing oneliners
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDJQ6TPD9EJWG33HYK
+    type: decision
+    topic: architecture
+    oneliner: Prioritize advanced plugin capabilities after Phase 1 baseline
+    created: 2026-02-03T09:09:16.668894+01:00
+    refs:
+        - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+        - D-01KGJ5XFHDMJ37527WJVED81P1
+        - D-01KGJ5XFHD1R0BDD9NVCARY3BH
+    body: |-
+        # Advanced Plugin Roadmap Priority
+
+        ## Context
+        Phase 1 and 1.5 established plugin lifecycle, discovery, diagnostics, and command execution.
+
+        ## Decision
+        Prioritize implementation of advanced extension capabilities next:
+        - hooks
+        - custom knowledge types
+        - custom store backends
+        - TUI extension points
+
+        ## Clarification: custom store backend
+        A custom store backend means a plugin can implement the persistence layer behind Dory's store interface while core CLI semantics stay stable.
+
+        Examples of potential backends:
+        - alternative local formats (SQLite, structured files)
+        - remote/team-backed persistence
+        - encrypted-at-rest backends
+
+        ## Constraints
+        - Keep core behavior deterministic and backward-compatible.
+        - Core `.dory` format remains first-class unless explicitly configured otherwise.
+        - Plugin failures must not corrupt project knowledge.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDMJ37527WJVED81P1
+    type: decision
+    topic: architecture
+    oneliner: Implement Phase 1 plugin foundation (discovery, management, diagnostics, command execution)
+    created: 2026-02-03T08:46:18.228866+01:00
+    refs:
+        - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+    body: |-
+        # Phase 1 Plugin Foundation Implemented
+
+        ## Context
+        D013 defined the long-term plugin architecture and phased rollout. We needed a concrete first implementation that is useful immediately while keeping the core stable.
+
+        ## Decision
+        Ship a pragmatic Phase 1 + 1.5 baseline focused on:
+        - discovery and project-local enablement
+        - plugin management/inspection diagnostics
+        - process-isolated command capability execution
+
+        ## Implemented Scope
+        - `internal/plugin/` package for manifest/config/discovery/protocol/host primitives.
+        - `dory plugin` command group with `list`, `inspect`, `enable`, `disable`, `doctor`, `run`.
+        - JSON request/response line protocol for `dory.health` and `dory.command.run`.
+        - Per-request timeout controls for health and run flows.
+        - Project-local plugin enablement persisted in `.dory/plugins.yaml`.
+
+        ## Technical Notes
+        - Execution model remains short-lived process per request (simple and robust).
+        - Plugin capabilities are declared in manifest and validated at runtime.
+        - Unknown plugins are never auto-enabled; explicit enable is required.
+
+        ## Why this now
+        - Gives immediate extensibility value with minimal surface area.
+        - Preserves Dory's core while validating architecture with real usage.
+        - Creates a stable base for hooks/custom types in Phase 2.
+
+        ## Follow-up
+        - Add install/remove lifecycle commands.
+        - Enforce explicit API handshake compatibility errors.
+        - Add protocol docs + integration fixtures.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDPMP1D6A4733M6Z3R
+    type: decision
+    topic: cli
+    oneliner: Remove --summary from learn/decide/pattern until it is stored
+    created: 2026-02-03T11:56:05.516498+01:00
+    refs:
+        - L-01KGJ5XFHDAZSKCDYMVDDNYWW9
+    body: |-
+        # Remove Unused Summary Flag
+
+        ## Context
+        `--summary` was parsed in create commands but not persisted in storage, creating misleading UX.
+
+        ## Decision
+        Remove `--summary` from `learn`, `decide`, and `pattern` for now.
+
+        ## Rationale
+        - Avoids false expectations
+        - Keeps CLI behavior aligned with persisted model
+        - Can be reintroduced later with explicit schema support
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDQPP7NZ970S06NJ2M
+    type: decision
+    topic: architecture
+    oneliner: Add bundled incident-validator plugin example and documentation
+    created: 2026-02-03T10:04:06.413145+01:00
+    refs:
+        - D-01KGJ5XFHD1R0BDD9NVCARY3BH
+        - D-01KGJ5XFHDRSG1R872RQVATTEM
+    body: |-
+        # Bundled Plugin Example for Custom Type Validation
+
+        ## Context
+        After introducing plugin-side custom type validation (`dory.type.validate`), users need a concrete reference implementation to understand how to build and test plugins.
+
+        ## Decision
+        Bundle an executable example plugin under `examples/plugins/incident-validator` and document usage in `README.md`.
+
+        ## What is included
+        - `plugin.yaml` with `capabilities.types: ["incident"]`
+        - `plugin.sh` implementing:
+          - `dory.health`
+          - `dory.type.validate`
+        - validation rules for `incident` payloads:
+          - `topic` required
+          - `body` required
+          - `body` must contain `## Impact`
+
+        ## Consequences
+        - New plugin authors can copy and adapt a working reference.
+        - Validation flow can be tested quickly with local `dory plugin install ... --enable` and `dory type create ...` commands.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDQSBQ7WE9Q6R1PQZD
+    type: decision
+    topic: architecture
+    oneliner: Remove legacy backend and standardize on Store/New API
+    created: 2026-02-02T20:15:51.467774+01:00
+    refs:
+        - D-01KGJ5XFHD3T054HGW6VQH1QAX
+    body: |+
+        # Remove legacy backend and standardize on Store/New API
+
+        ## Context
+
+        (Add context here)
+
+        ## Decision
+
+        Remove legacy backend and standardize on Store/New API
+
+        ## Rationale
+
+
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDRSG1R872RQVATTEM
+    type: decision
+    topic: architecture
+    oneliner: Exclude plugin store backends for now; prioritize hooks/types/TUI
+    created: 2026-02-03T09:24:00.795839+01:00
+    refs:
+        - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+        - D-01KGJ5XFHDMJ37527WJVED81P1
+        - D-01KGJ5XFHD1R0BDD9NVCARY3BH
+        - D-01KGJ5XFHDJQ6TPD9EJWG33HYK
+    body: |-
+        # Plugin Scope Decision (Phase 2)
+
+        ## Context
+        Store backend plugins were considered as part of long-term plugin architecture, but they carry high data-integrity and support risks this early.
+
+        ## Decision
+        Keep `.dory` as the single storage backend for now and do not support plugin-provided store backends.
+
+        Prioritize implementation work in this order:
+        1. Hooks
+        2. Custom knowledge types
+        3. TUI extension points
+
+        ## Rationale
+        - Preserves deterministic, stable core persistence while plugin APIs mature.
+        - Reduces risk of data loss/corruption from third-party backend implementations.
+        - Delivers high-value extensibility (automation + domain modeling + UX hooks) with lower operational risk.
+
+        ## Consequences
+        - `capabilities.store` is explicitly rejected in plugin manifests for now.
+        - Plugin roadmap remains modular; backend extensibility can be revisited later behind stricter compatibility guarantees.
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDSGAY329ZF77ZRTB5
+    type: decision
+    topic: file-format
+    oneliner: YAML frontmatter + Markdown body for .eng files
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # YAML frontmatter + Markdown body for .eng files
+
+        ## Context
+
+        (Add context here)
+
+        ## Decision
+
+        YAML frontmatter + Markdown body for .eng files
+
+        ## Rationale
+
+        Machine-readable metadata with human-readable content, similar to Jekyll/Hugo
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDSMFY8NMY5MGWAVR8
+    type: decision
+    topic: architecture
+    oneliner: Introduce plugin system with phased rollout and process-isolated architecture
+    created: 2026-02-03T07:14:29+01:00
+    refs:
+        - D-01KGJ5XFHD3T054HGW6VQH1QAX
+        - D-01KGJ5XFHDQSBQ7WE9Q6R1PQZD
+    body: |+
+        # Plugin System Architecture and Rollout
+
+        ## Context
+        Dory should remain simple at its core while enabling advanced extension points for power users.
+
+        ## Decision
+        Adopt a plugin system based on process-isolated external plugins communicating over stdio using JSON-RPC style messages, delivered in phases.
+
+        ## Why this architecture
+        - Preserves a small, stable core
+        - Avoids Go `plugin` portability/version issues
+        - Provides crash isolation and safer failure modes
+        - Keeps plugin language/runtime flexible
+
+        ## Core principles
+        1. Core-first minimalism: storage format, default types, and core commands stay built-in.
+        2. Opt-in extensibility: plugins are disabled unless explicitly enabled per project.
+        3. Strict contracts: typed capability declarations and versioned plugin API.
+        4. Fail-soft behavior: plugin failures do not corrupt core storage.
+
+        ## Plugin model
+        - Plugins are executables with a manifest (`plugin.yaml`).
+        - Project-level enablement config: `.dory/plugins.yaml`.
+        - Host starts plugin processes and negotiates `api_version` and capabilities.
+
+        ### Capability families
+        - `commands`: add new CLI subcommands under `dory plugin run ...` and optional aliases.
+        - `hooks`: pre/post lifecycle hooks for core operations.
+        - `types`: custom knowledge types with schema + validation + rendering hints.
+        - `store` (future/advanced): optional backend adapter behind a strict store interface.
+
+        ## Safety and operational constraints
+        - Per-plugin timeout and max payload size
+        - Structured stderr capture + clear CLI warnings
+        - No implicit execution: explicit install + enable required
+        - API version compatibility checks at startup
+
+        ## Data and compatibility
+        - Core `.dory` format remains the source of truth.
+        - Plugin-provided metadata is namespaced to avoid key collisions.
+        - Unknown plugin metadata must be preserved on read/write (forward compatibility).
+
+        ## Phased rollout
+        ### Phase 1 (MVP): Plugin Host + Command Plugins
+        - Plugin manifest parsing
+        - Plugin discovery/enablement
+        - Stdio process host with request/response framing
+        - Basic plugin health checks and diagnostics command
+
+        ### Phase 2: Hooks + Custom Types
+        - Hook events: `before_create`, `after_create`, `before_remove`, `after_compact`
+        - Deterministic hook ordering and timeout semantics
+        - Custom type registration with schema validation and listing/show support
+
+        ### Phase 3: Store Adapter + TUI Integration Points
+        - Optional pluggable store adapter via strict interface and capability negotiation
+        - TUI-oriented extension APIs (query/render hooks), keeping CLI core independent
+        - Additional hardening: retry/backoff, richer telemetry, compatibility matrix tooling
+
+        ## Non-goals (initial)
+        - In-process dynamic library loading
+        - Plugin network access by default
+        - Making core commands depend on any specific plugin
+
+        ## Implementation notes for future work
+        - Add `internal/plugin/` packages: manifest, registry, host, protocol, hooks
+        - Add `dory plugin` command group: list, inspect, enable, disable, doctor
+        - Add integration tests with a fake plugin binary and protocol fixtures
+
+        ## Consequences
+        - Slight increase in complexity at boundaries (host/protocol), offset by a stable and minimal core.
+        - Enables meaningful ecosystem growth without coupling core development to plugin needs.
+
+        ## Implementation Status (2026-02-03)
+
+        ### Completed in this branch (Phase 1 + 1.5)
+        - Added plugin core scaffolding in `internal/plugin/` (`manifest`, `config`, `discovery`, `protocol`, `host`).
+        - Added `dory plugin` command group with: `list`, `inspect`, `enable`, `disable`, `doctor`, and `run`.
+        - Added project plugin enablement config at `.dory/plugins.yaml`.
+        - Implemented process-isolated request/response execution for `dory.health` and `dory.command.run`.
+        - Added plugin-focused tests (manifest/config/discovery/host/run command resolution).
+        - Added README docs for plugin manifest layout and command usage.
+
+        ### Still pending to fully complete Phase 1
+        - Install/remove lifecycle commands (`dory plugin add/remove` style UX).
+        - Strict API handshake enforcement with explicit version compatibility errors.
+        - Formal protocol documentation and fixture-based integration tests.
+        - Explicit trust/safety UX for first-time plugin enablement.
+
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDX2169GCGAJ0C3AKX
+    type: decision
+    topic: architecture
+    oneliner: Single index.yaml as source of truth
+    created: 2026-02-01T00:00:00Z
+    refs:
+        - D-01KGJ5XFHD6ASSYHZ8PN2DEJ1B
+    body: |-
+        # Single index.yaml as source of truth
+
+        ## Context
+
+        Previously had separate files: index.yaml, state.yaml, and BRIEF.md (auto-generated).
+        This caused duplication and sync issues - editing state.yaml required rebuilding BRIEF.md.
+
+        ## Decision
+
+        Merge state into index.yaml. Remove state.yaml and BRIEF.md entirely.
+        Agents read `cat .dory/index.yaml` directly.
+
+        ## Rationale
+
+        - Single source of truth
+        - No regeneration issues
+        - Simpler mental model
+        - Better DX - edits just work
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDX51S9W5W1C6FHKV8
+    type: decision
+    topic: architecture
+    oneliner: Use Cobra for CLI framework
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Use Cobra for CLI framework
+
+        ## Context
+
+        (Add context here)
+
+        ## Decision
+
+        Use Cobra for CLI framework
+
+        ## Rationale
+
+        Industry standard for Go CLIs, provides subcommands, flags, and help generation
+---
+op: item.create
+item:
+    id: D-01KGJ5XFHDXV313S1P9S3538EA
+    type: decision
+    topic: architecture
+    oneliner: Add ref graph traversal commands for agents and humans
+    created: 2026-02-03T15:28:13.447215+01:00
+    refs:
+        - D-01KGJ5XFHDAG481R0MS6TAN99Q
+    body: |-
+        # Ref Graph Traversal Commands
+
+        ## Context
+        Refs between knowledge items exist but are underutilized. Agents need to understand relationships, expand context, and trace lineage. Humans want visualization.
+
+        ## Decision
+        Add dual-mode graph commands that serve both agents and humans:
+
+        ### For Agents: `dory refs`
+        Show relationships in structured text:
+        ```bash
+        dory refs D001
+        ```
+        ```
+        D001: Use Redis for caching
+          ← caused by: L001 (Connection pool exhaustion under load)
+          ← caused by: L003 (Memory limits hit with in-process cache)
+          → led to: P002 (All cache keys use namespace prefix)
+          → led to: D005 (Session storage uses same Redis instance)
+        ```
+
+        ### For Agents: `dory expand`
+        Get an item plus all connected items in one call:
+        ```bash
+        dory expand D001              # 1 hop (direct refs)
+        dory expand D001 --depth 2    # 2 hops
+        ```
+        Returns full content of the item and all connected items. One command, complete context.
+
+        ### For Humans: `dory graph`
+        Export for visualization tools:
+        ```bash
+        dory graph --dot > knowledge.dot    # Graphviz
+        dory graph --mermaid                # Mermaid diagrams
+        ```
+
+        ## Implementation
+        Build bidirectional ref index on store open:
+        - `RefsTo`: what an item references
+        - `ReferencedBy`: what references an item
+
+        BFS traversal for expand with depth limit.
+
+        ## Rationale
+        - Refs data already exists, just needs surfacing
+        - Agents get context expansion in one command
+        - Humans get visual exploration
+        - Minimal new storage, just traversal logic
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHD1P40J6ZY5GR1DRT8
+    type: lesson
+    topic: plugin
+    severity: high
+    oneliner: Dropped plugin TUI capability until real interactive host exists
+    created: 2026-02-03T12:36:17.055908+01:00
+    refs:
+        - D-01KGJ5XFHDRSG1R872RQVATTEM
+        - D-01KGJ5XFHDPMP1D6A4733M6Z3R
+    body: |-
+        # Remove TUI Capability for Now
+
+        ## Context
+        Plugin `tui` capability only provided declaration/discovery metadata and did not correspond to a real interactive TUI runtime.
+
+        ## Decision
+        Remove all TUI capability code paths, CLI surfaces, and examples for now.
+
+        ## Scope Removed
+        - `capabilities.tui` in plugin manifest model
+        - `dory plugin tui` command
+        - TUI discovery code and tests
+        - `examples/plugins/tui-insights`
+
+        ## Rationale
+        - Keep plugin API honest: only ship capabilities with real runtime behavior
+        - Reduce maintenance surface while focusing on command/hooks/custom-type stability
+        - Reintroduce TUI later with a concrete execution/render contract
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHD4NY0MRTHAYF0GYX7
+    type: lesson
+    topic: architecture
+    severity: high
+    oneliner: Scan-on-open beats persistent offsets for corruption resistance
+    created: 2026-02-02T10:56:03.695826+01:00
+    body: |-
+        # Scan-on-Open Index Strategy
+
+        ## The Problem
+        Storing byte offsets in the index file creates fragility:
+        - Manual file edits corrupt the index
+        - Any byte shift invalidates all subsequent offsets
+        - Recovery requires full rebuild anyway
+
+        ## The Solution
+        Don't persist offsets at all. On file open:
+        1. Scan the knowledge file sequentially
+        2. Build in-memory index with offsets
+        3. Use in-memory offsets for O(1) random access
+
+        ## Performance Impact
+        - Open time: ~7ms for 500 items (acceptable)
+        - Random access: Still O(1) via in-memory map
+        - List operations: Faster (pure in-memory)
+
+        ## Lesson
+        Prefer robustness over micro-optimization. The 'slow' scan is imperceptible (<10ms), but corruption resistance is invaluable.
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHD6NJMXH4RJF8VG02D
+    type: lesson
+    topic: architecture
+    severity: high
+    oneliner: Rebuild loses oneliners if not stored in frontmatter
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Rebuild loses oneliners if not stored in frontmatter
+
+        ## Details
+
+        (Add details here)
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHD7520DHDRHBATFEYK
+    type: lesson
+    topic: architecture
+    severity: critical
+    oneliner: Document store for AI agents - explore single-file, text-based, queryable format
+    created: 2026-02-01T22:02:21+01:00
+    body: |-
+        # Document Store for AI Agents
+
+        ## Problem
+        Current file-per-item approach doesn't scale. Need a format that is:
+        - Single file (or few files)
+        - Text-based, human/agent readable
+        - Queryable with index support
+        - Git-friendly
+
+        ## Candidates
+        - YAML stream (--- separators)
+        - JSONL with index header
+        - Custom DSL optimized for agents
+        - Org-mode / outline style
+
+        ## Requirements
+        - Agents can cat/read directly
+        - Supports fast lookup by ID
+        - Greppable content
+        - Append-friendly for git diffs
+
+        ## Priority
+        High - could be the core innovation of Dory.
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDAZSKCDYMVDDNYWW9
+    type: lesson
+    topic: storage
+    severity: high
+    oneliner: Reusing deleted IDs required clearing tombstones on append
+    created: 2026-02-03T11:55:58.166029+01:00
+    refs:
+        - D-01KGJ5XFHD3T054HGW6VQH1QAX
+    body: |-
+        # Reused IDs and Tombstones
+
+        ## Symptom
+        After deleting an item and creating a new item with the same ID, the new item disappeared after reopen.
+
+        ## Root Cause
+        Deleted IDs were tracked in `index.yaml.deleted` and scan skipped all entries with those IDs, including newly appended ones.
+
+        ## Fix
+        When appending an entry, remove its ID from deleted tombstones and persist index. Added regression tests for delete->reuse->reopen.
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDEC4MRCAFY7B7W4EE
+    type: lesson
+    topic: test
+    severity: normal
+    oneliner: Test heredoc approach
+    created: 2026-02-02T12:26:33.360858+01:00
+    body: "# Test Entry\n\n## Section with emoji \U0001F389\nThis should work naturally.\n\n## Code example\n```go\nfunc main() {\n    fmt.Println(\"Hello\")\n}\n```\n"
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDPXK9QYYPZS5F6NMP
+    type: lesson
+    topic: git
+    severity: normal
+    oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Use /dory not dory in .gitignore to avoid ignoring cmd/dory
+
+        ## Details
+
+        (Add details here)
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDSSPAZ2NV2K3AEE4J
+    type: lesson
+    topic: storage
+    severity: high
+    oneliner: Deterministic compaction requires stable ID ordering
+    created: 2026-02-02T20:15:51.749383+01:00
+    refs:
+        - L-01KGJ5XFHDY94GPTM4RZVZA4E1
+    body: |-
+        # Deterministic compaction requires stable ID ordering
+
+        ## Details
+
+        (Add details here)
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDTSBX8NRANHEZW71G
+    type: lesson
+    topic: performance
+    severity: critical
+    oneliner: Test lesson for edit
+    created: 2026-02-02T12:06:59.204086+01:00
+    body: Test body content
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDWCPPMK5616DT7XDR
+    type: lesson
+    topic: architecture
+    severity: high
+    oneliner: 'Hot/cold storage: active files + archived bundles'
+    created: 2026-02-01T22:31:52+01:00
+    refs:
+        - L-01KGJ5XFHD7520DHDRHBATFEYK
+    body: |-
+        # Hot/Cold Hybrid Storage
+
+        ## Concept
+        - Hot path: individual .eng files (current behavior)
+        - Cold path: archived bundles (YAML stream, blob, etc.)
+
+        ## Structure
+        ```
+        .dory/
+        ├── index.yaml
+        ├── knowledge/        # hot - fast access, editable
+        │   ├── L045.eng
+        │   └── D012.eng
+        └── archive/          # cold - compact, bundled
+            └── 2026-Q1.yaml
+        ```
+
+        ## Commands
+        - `dory archive --before 2026-01-01`
+        - `dory archive --topic legacy-api`
+        - `dory unarchive L003`
+
+        ## Benefits
+        - Recent knowledge: fast O(1) access
+        - Old knowledge: compact, fewer files
+        - Best of both worlds
+
+        ## Similar patterns
+        - Git: loose objects vs packfiles
+        - Databases: hot/cold tiers
+        - Log systems: recent vs archived
+---
+op: item.create
+item:
+    id: L-01KGJ5XFHDY94GPTM4RZVZA4E1
+    type: lesson
+    topic: storage
+    severity: normal
+    oneliner: Emojis and special Unicode characters force YAML quoted style
+    created: 2026-02-02T12:21:49.796364+01:00
+    body: "# YAML Literal Style Limitation\n\n## Problem\nWhen body content contains emojis (e.g., \U0001F389) or other special Unicode characters, yaml.v3 cannot use literal block style and falls back to quoted style with Unicode escapes.\n\nExample:\n- Input: `## Success \U0001F389`\n- Stored as: `\"## Success \\U0001F389\"`\n\n## Impact\n- Raw knowledge.dory file is harder to read\n- Content is still valid and displays correctly via `dory show`\n\n## Potential Fixes\n1. Strip emojis before storing (lossy)\n2. Custom YAML encoder for body field\n3. Accept as limitation (current)\n\n## Workaround\nContent with emojis works correctly when retrieved. Only the raw file readability is affected."
+---
+op: item.create
+item:
+    id: P-01KGJ5XFHD22R0HGSNTBFW8RDA
+    type: pattern
+    domain: cli
+    oneliner: Editor mode for humans, --body flag for agents
+    created: 2026-02-01T00:00:00Z
+    refs:
+        - P-01KGJ5XFHDHB2XG8N5NMAG6FR1
+    body: |-
+        # Dual Interface Pattern
+
+        ## For Humans
+
+        - Omit arguments to open $EDITOR with template
+        - `dory learn --topic foo` opens editor
+        - `dory edit D001` edits existing item
+
+        ## For Agents
+
+        - Use `--body "content"` flag for inline content
+        - Use `--body -` to pipe from stdin
+        - Programmatic, non-interactive
+---
+op: item.create
+item:
+    id: P-01KGJ5XFHDDNGGSDMG5WGRW075
+    type: pattern
+    domain: cli
+    oneliner: All commands support --json and --yaml output flags
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # All commands support --json and --yaml output flags
+
+        ## Pattern
+
+        All commands support --json and --yaml output flags
+
+        ## Implementation
+
+        (Add implementation details here)
+---
+op: item.create
+item:
+    id: P-01KGJ5XFHDHB2XG8N5NMAG6FR1
+    type: pattern
+    domain: cli
+    oneliner: Use --body flag or stdin for programmatic content input
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Use --body flag or stdin for programmatic content input
+
+        ## Pattern
+
+        Use --body flag or stdin for programmatic content input
+
+        ## Implementation
+
+        (Add implementation details here)
+---
+op: item.create
+item:
+    id: D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+    type: decision
+    topic: storage
+    oneliner: Use .dory as the canonical implementation tracker
+    created: 2026-02-03T19:11:24.335726Z
+    body: |
+        # Decision
+
+        Track implementation progress directly in `.dory` rather than external planning docs.
+
+        ## Scope
+
+        - Planning milestones
+        - Validation results (CLI sweeps, stress tests)
+        - Open questions and next actions
+
+        ## Consequences
+
+        - Agents can reconstruct history via `list`, `show`, `refs`, `context`.
+        - Reduced doc drift between design notes and actual runtime state.
+---
+op: item.create
+item:
+    id: L-01KGJENA8KB3CS6WDT2970NXYJ
+    type: lesson
+    topic: storage
+    severity: high
+    oneliner: Validated full CLI sweep and concurrent multi-agent writes
+    created: 2026-02-03T19:11:24.435605Z
+    refs:
+        - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+    body: |
+        # Validation Summary
+
+        Executed command sweeps in isolated temp workspaces and stress-tested concurrent writers/readers.
+
+        ## Results
+
+        - CLI sweep: all targeted commands passed in temp `.dory`.
+        - Plugin/type flow: install/list/inspect/run/doctor/enable/disable/remove passed.
+        - Concurrent write stress: expected item counts matched actual counts; no duplicate or invalid IDs.
+        - Mixed read/write stress: no reader/writer errors observed.
+
+        ## Practical Outcome
+
+        Current doryfile path is stable enough to keep tracking in `.dory` as source-of-truth for ongoing implementation steps.
+---
+op: item.create
+item:
+    id: P-01KGJENABRNSD6GW6RZ3BQQ9M3
+    type: pattern
+    domain: workflow
+    oneliner: Record project progress with status + typed knowledge items
+    created: 2026-02-03T19:11:24.536648Z
+    refs:
+        - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+        - L-01KGJENA8KB3CS6WDT2970NXYJ
+    body: |
+        # Pattern
+
+        Use `status` for live session state and typed entries for persistent evidence.
+
+        ## Workflow
+
+        1. Update `status` when focus changes.
+        2. Store major architecture choices as `decision` items.
+        3. Store validation outcomes and caveats as `lesson` items.
+        4. Link related items via `refs` for navigable history.
+---
+op: state.update
+state:
+    goal: Track implementation and validation directly in .dory
+    progress: Added canonical tracking decision, validation lesson, and workflow pattern into local .dory
+    next:
+        - Continue implementation tasks while updating .dory items in real time
+        - Keep refs updated between decisions/lessons/patterns
+    working_files:
+        - internal/doryfile/open_scan.go
+        - internal/store/lifecycle.go
+        - internal/store/read_ops.go
+    open_questions:
+        - Do you want a recurring weekly summary entry pattern in .dory?
+    last_updated: "2026-02-03T19:11:24Z"

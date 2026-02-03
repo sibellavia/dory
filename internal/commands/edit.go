@@ -54,18 +54,11 @@ Examples:
 }
 
 func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string, refs []string) {
-	df, err := doryfile.Open(".dory")
-	if err != nil {
-		CheckError(err)
-	}
-	defer df.Close()
+	s := store.New("")
+	defer s.Close()
 
-	// Get current entry
-	entry, err := df.Get(id)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	entry, err := s.GetEntry(id)
+	CheckError(err)
 
 	// Update fields if provided
 	var updated []string
@@ -91,11 +84,7 @@ func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string
 		updated = append(updated, "refs")
 	}
 
-	// Append updated entry (old entry will be orphaned, cleaned up on compact)
-	// We don't use Delete() because it would add the ID to the Deleted list
-	if err := df.Append(entry); err != nil {
-		CheckError(err)
-	}
+	CheckError(s.UpdateEntry(entry))
 
 	result := map[string]interface{}{
 		"id":      id,
@@ -110,11 +99,11 @@ func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string
 
 func editWithEditor(cmd *cobra.Command, id string) {
 	s := store.New("")
+	defer s.Close()
 
 	// Get current content
 	content, err := s.Show(id)
 	if err != nil {
-		s.Close()
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -122,7 +111,6 @@ func editWithEditor(cmd *cobra.Command, id string) {
 	// Write to temp file
 	tmpfile, err := os.CreateTemp("", "dory-edit-*.md")
 	if err != nil {
-		s.Close()
 		CheckError(err)
 	}
 	tmpPath := tmpfile.Name()
@@ -130,11 +118,9 @@ func editWithEditor(cmd *cobra.Command, id string) {
 
 	if _, err := tmpfile.WriteString(content); err != nil {
 		tmpfile.Close()
-		s.Close()
 		CheckError(err)
 	}
 	if err := tmpfile.Close(); err != nil {
-		s.Close()
 		CheckError(err)
 	}
 
@@ -146,20 +132,17 @@ func editWithEditor(cmd *cobra.Command, id string) {
 	editorCmd.Stderr = os.Stderr
 
 	if err := editorCmd.Run(); err != nil {
-		s.Close()
 		CheckError(err)
 	}
 
 	// Read edited content
 	newContent, err := os.ReadFile(tmpPath)
 	if err != nil {
-		s.Close()
 		CheckError(err)
 	}
 
 	// Check if content changed
 	if string(newContent) == content {
-		s.Close()
 		fmt.Println("No changes made")
 		return
 	}
@@ -167,7 +150,6 @@ func editWithEditor(cmd *cobra.Command, id string) {
 	// Parse the edited content
 	entry, err := parseEditedContent(string(newContent))
 	if err != nil {
-		s.Close()
 		fmt.Fprintf(os.Stderr, "Error parsing edited content: %v\n", err)
 		os.Exit(1)
 	}
@@ -175,20 +157,7 @@ func editWithEditor(cmd *cobra.Command, id string) {
 	// Preserve original ID
 	entry.ID = id
 
-	// Append a new version with the same ID. The latest entry wins during scan.
-	// Do not call Remove(id) here, because that marks the ID as deleted.
-	s.Close()
-
-	// Reopen and add the entry directly
-	df, err := doryfile.Open(".dory")
-	if err != nil {
-		CheckError(err)
-	}
-	defer df.Close()
-
-	if err := df.Append(entry); err != nil {
-		CheckError(err)
-	}
+	CheckError(s.UpdateEntry(entry))
 
 	result := map[string]string{
 		"id":     id,
