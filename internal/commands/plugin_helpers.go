@@ -20,9 +20,6 @@ func capabilitySummary(c plugin.Capabilities) string {
 	if len(c.Types) > 0 {
 		parts = append(parts, "types")
 	}
-	if len(c.TUI) > 0 {
-		parts = append(parts, "tui")
-	}
 	if len(parts) == 0 {
 		return "-"
 	}

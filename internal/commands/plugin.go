@@ -8,7 +8,7 @@ var pluginCmd = &cobra.Command{
 	Long: `Manage project plugins.
 
 Current plugin support includes install/remove lifecycle, discovery, enablement,
-inspection, diagnostics, command execution, hooks, custom types, and TUI extension declarations.
+inspection, diagnostics, command execution, hooks, and custom types.
 Plugins are discovered from .dory/plugins/<plugin>/plugin.yaml and are opt-in.`,
 }
 

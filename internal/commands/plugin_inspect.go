@@ -55,9 +55,6 @@ var pluginInspectCmd = &cobra.Command{
 			if len(selected.Capabilities.Types) > 0 {
 				fmt.Printf("  Types: %s\n", strings.Join(selected.Capabilities.Types, ", "))
 			}
-			if len(selected.Capabilities.TUI) > 0 {
-				fmt.Printf("  TUI: %s\n", strings.Join(selected.Capabilities.TUI, ", "))
-			}
 			for _, issue := range issues {
 				fmt.Printf("Warning: %s (%s)\n", issue.Error, pluginPathDisplay(issue.Path))
 			}

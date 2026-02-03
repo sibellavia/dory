@@ -1,7 +1,0 @@
-name: tui-insights
-api_version: v1
-version: 0.1.0
-description: Declare TUI extension points for dashboards and panels
-command: ["./plugin.sh"]
-capabilities:
-  tui: ["dashboard", "panel.topics", "panel.recent"]

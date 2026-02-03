@@ -928,3 +928,61 @@ body: |-
     - Keeps CLI behavior aligned with persisted model
     - Can be reintroduced later with explicit schema support
 
+===
+id: L011
+type: lesson
+topic: plugin
+severity: high
+oneliner: Dropped plugin TUI capability until real interactive host exists
+created: 2026-02-03T12:36:17.055908+01:00
+refs:
+    - D017
+    - D019
+body: |-
+    # Remove TUI Capability for Now
+
+    ## Context
+    Plugin `tui` capability only provided declaration/discovery metadata and did not correspond to a real interactive TUI runtime.
+
+    ## Decision
+    Remove all TUI capability code paths, CLI surfaces, and examples for now.
+
+    ## Scope Removed
+    - `capabilities.tui` in plugin manifest model
+    - `dory plugin tui` command
+    - TUI discovery code and tests
+    - `examples/plugins/tui-insights`
+
+    ## Rationale
+    - Keep plugin API honest: only ship capabilities with real runtime behavior
+    - Reduce maintenance surface while focusing on command/hooks/custom-type stability
+    - Reintroduce TUI later with a concrete execution/render contract
+
+===
+id: D020
+type: decision
+topic: plugin
+oneliner: Keep plugin scope to commands, hooks, and custom types; defer TUI capability
+created: 2026-02-03T12:36:24.168464+01:00
+refs:
+    - L011
+    - D017
+body: |-
+    # Plugin Scope Clarification
+
+    ## Context
+    After experimenting with a terminal dashboard, we confirmed there is no first-class interactive TUI host API yet.
+
+    ## Decision
+    Keep plugin scope to:
+    - custom commands
+    - lifecycle hooks
+    - custom knowledge type validation
+
+    Defer TUI capability until a real host/render/event contract is designed.
+
+    ## Consequences
+    - Cleaner and more truthful plugin surface area
+    - Fewer half-implemented extension points
+    - Future TUI work can return as a focused design/implementation track
+

@@ -12,4 +12,3 @@ Available examples:
 - `postmortem-validator`: custom type `postmortem` with richer section checks
 - `command-echo`: command plugin example (`dory.command.run`)
 - `hook-guard`: hook plugin example (`dory.hook.run`) that can block removals
-- `tui-insights`: declares TUI extension points for discovery (`dory plugin tui`)

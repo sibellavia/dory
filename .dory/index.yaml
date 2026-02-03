@@ -1,9 +1,8 @@
 project: dory
 state:
-    goal: Stabilize plugin branch and plan next extension work
-    progress: Fixed reused-ID tombstone issue, removed unused --summary flags, and added regression tests
+    goal: Finalize plugin surface for merge to main
+    progress: Removed TUI capability from plugin system, CLI, and examples; validated tests pass
     next:
-        - Commit the cleanup + bugfix patch
-        - Decide whether to continue plugin scope now or pause
-        - Optionally prototype a TUI plugin spike
-    last_updated: "2026-02-03T11:56:11+01:00"
+        - Commit TUI removal + docs updates
+        - Merge plugin branch to main
+    last_updated: "2026-02-03T12:36:32+01:00"

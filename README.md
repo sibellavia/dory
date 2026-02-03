@@ -154,7 +154,6 @@ Today you can build plugins for:
 - custom commands
 - lifecycle hooks
 - custom knowledge types with validation
-- TUI extension declarations
 
 Plugin manifests are discovered from:
 
@@ -178,7 +177,6 @@ capabilities:
   commands: ["sync"]
   hooks: ["before_create", "after_create"]
   types: ["incident"]
-  tui: ["dashboard"]
 ```
 
 Try the bundled example plugin:

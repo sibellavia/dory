@@ -15,7 +15,6 @@ type Capabilities struct {
 	Commands []string `yaml:"commands,omitempty" json:"commands,omitempty"`
 	Hooks    []string `yaml:"hooks,omitempty" json:"hooks,omitempty"`
 	Types    []string `yaml:"types,omitempty" json:"types,omitempty"`
-	TUI      []string `yaml:"tui,omitempty" json:"tui,omitempty"`
 	// Store remains parsed so we can explicitly reject it at validation time.
 	Store bool `yaml:"store,omitempty" json:"store,omitempty"`
 }
