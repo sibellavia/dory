@@ -986,3 +986,97 @@ body: |-
     - Fewer half-implemented extension points
     - Future TUI work can return as a focused design/implementation track
 
+===
+id: D021
+type: decision
+topic: architecture
+oneliner: Add ref graph traversal commands for agents and humans
+created: 2026-02-03T15:28:13.447215+01:00
+refs:
+    - D006
+body: |
+    # Ref Graph Traversal Commands
+
+    ## Context
+    Refs between knowledge items exist but are underutilized. Agents need to understand relationships, expand context, and trace lineage. Humans want visualization.
+
+    ## Decision
+    Add dual-mode graph commands that serve both agents and humans:
+
+    ### For Agents: `dory refs`
+    Show relationships in structured text:
+    ```bash
+    dory refs D001
+    ```
+    ```
+    D001: Use Redis for caching
+      ← caused by: L001 (Connection pool exhaustion under load)
+      ← caused by: L003 (Memory limits hit with in-process cache)
+      → led to: P002 (All cache keys use namespace prefix)
+      → led to: D005 (Session storage uses same Redis instance)
+    ```
+
+    ### For Agents: `dory expand`
+    Get an item plus all connected items in one call:
+    ```bash
+    dory expand D001              # 1 hop (direct refs)
+    dory expand D001 --depth 2    # 2 hops
+    ```
+    Returns full content of the item and all connected items. One command, complete context.
+
+    ### For Humans: `dory graph`
+    Export for visualization tools:
+    ```bash
+    dory graph --dot > knowledge.dot    # Graphviz
+    dory graph --mermaid                # Mermaid diagrams
+    ```
+
+    ## Implementation
+    Build bidirectional ref index on store open:
+    - `RefsTo`: what an item references
+    - `ReferencedBy`: what references an item
+
+    BFS traversal for expand with depth limit.
+
+    ## Rationale
+    - Refs data already exists, just needs surfacing
+    - Agents get context expansion in one command
+    - Humans get visual exploration
+    - Minimal new storage, just traversal logic
+
+===
+id: D022
+type: decision
+topic: architecture
+oneliner: Add dory context command for agent session start
+created: 2026-02-03T15:28:44.264485+01:00
+body: |
+    # Agent Context Command
+
+    ## Context
+    At session start, agents need to understand project state and relevant knowledge. Currently requires multiple commands:
+    1. `cat .dory/index.yaml` for state
+    2. `dory list` to see what exists
+    3. `dory recall <topic>` or `dory show <id>` for relevant items
+
+    ## Decision
+    Add `dory context` command that returns a smart, token-efficient context dump:
+
+    ```bash
+    dory context                    # State + recent items + critical lessons
+    dory context --topic auth       # State + everything related to auth
+    dory context --full             # Everything (for small knowledge bases)
+    ```
+
+    ## Output Design
+    Single payload optimized for agent consumption:
+    - Current session state (goal, progress, next, blockers)
+    - Critical/high severity lessons (always included)
+    - Recent items (last N days or sessions)
+    - Topic-filtered items if --topic specified
+
+    ## Rationale
+    - Reduces session start from 3+ commands to 1
+    - Token-efficient: returns what matters, not everything
+    - Agents can immediately understand project context
+

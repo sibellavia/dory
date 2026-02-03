@@ -1,8 +1,8 @@
 project: dory
 state:
-    goal: Finalize plugin surface for merge to main
-    progress: Removed TUI capability from plugin system, CLI, and examples; validated tests pass
+    goal: Improve agent experience with graph traversal and context commands
+    progress: Implemented dory refs and dory expand commands
     next:
-        - Commit TUI removal + docs updates
-        - Merge plugin branch to main
-    last_updated: "2026-02-03T12:36:32+01:00"
+        - Implement dory context command
+        - Update README with new commands
+    last_updated: "2026-02-03T15:57:46+01:00"

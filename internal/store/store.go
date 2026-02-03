@@ -463,6 +463,225 @@ func (s *Store) DumpIndex() (string, error) {
 	return s.df.DumpIndex()
 }
 
+// RefInfo represents relationship information for an item
+type RefInfo struct {
+	ID           string    `json:"id" yaml:"id"`
+	Type         string    `json:"type" yaml:"type"`
+	Oneliner     string    `json:"oneliner" yaml:"oneliner"`
+	RefsTo       []RefItem `json:"refs_to,omitempty" yaml:"refs_to,omitempty"`
+	ReferencedBy []RefItem `json:"referenced_by,omitempty" yaml:"referenced_by,omitempty"`
+}
+
+// RefItem represents a referenced item with its metadata
+type RefItem struct {
+	ID       string `json:"id" yaml:"id"`
+	Type     string `json:"type" yaml:"type"`
+	Oneliner string `json:"oneliner" yaml:"oneliner"`
+}
+
+// Refs returns relationship information for an item
+func (s *Store) Refs(id string) (*RefInfo, error) {
+	if err := s.open(); err != nil {
+		return nil, err
+	}
+
+	entries := s.df.Entries()
+
+	// Check if item exists
+	entry, ok := entries[id]
+	if !ok {
+		return nil, fmt.Errorf("item %s not found", id)
+	}
+
+	// Build reverse index (what references this item)
+	referencedBy := make(map[string]bool)
+	for otherID, otherEntry := range entries {
+		if otherID == id {
+			continue
+		}
+		for _, ref := range otherEntry.Refs {
+			if ref == id {
+				referencedBy[otherID] = true
+				break
+			}
+		}
+	}
+
+	// Build refs_to list
+	var refsTo []RefItem
+	for _, refID := range entry.Refs {
+		if refEntry, ok := entries[refID]; ok {
+			refsTo = append(refsTo, RefItem{
+				ID:       refID,
+				Type:     refEntry.Type,
+				Oneliner: refEntry.Oneliner,
+			})
+		} else {
+			// Referenced item doesn't exist (deleted or invalid)
+			refsTo = append(refsTo, RefItem{
+				ID:       refID,
+				Type:     "unknown",
+				Oneliner: "(not found)",
+			})
+		}
+	}
+
+	// Build referenced_by list
+	var refBy []RefItem
+	// Sort for deterministic output
+	var refByIDs []string
+	for refID := range referencedBy {
+		refByIDs = append(refByIDs, refID)
+	}
+	sort.Strings(refByIDs)
+
+	for _, refID := range refByIDs {
+		refEntry := entries[refID]
+		refBy = append(refBy, RefItem{
+			ID:       refID,
+			Type:     refEntry.Type,
+			Oneliner: refEntry.Oneliner,
+		})
+	}
+
+	return &RefInfo{
+		ID:           id,
+		Type:         entry.Type,
+		Oneliner:     entry.Oneliner,
+		RefsTo:       refsTo,
+		ReferencedBy: refBy,
+	}, nil
+}
+
+// ExpandedItem represents an item with its full content in expand output
+type ExpandedItem struct {
+	ID       string   `json:"id" yaml:"id"`
+	Type     string   `json:"type" yaml:"type"`
+	Oneliner string   `json:"oneliner" yaml:"oneliner"`
+	Topic    string   `json:"topic,omitempty" yaml:"topic,omitempty"`
+	Domain   string   `json:"domain,omitempty" yaml:"domain,omitempty"`
+	Refs     []string `json:"refs,omitempty" yaml:"refs,omitempty"`
+	Body     string   `json:"body" yaml:"body"`
+}
+
+// ExpandResult contains the root item and all connected items
+type ExpandResult struct {
+	Root      ExpandedItem   `json:"root" yaml:"root"`
+	Connected []ExpandedItem `json:"connected,omitempty" yaml:"connected,omitempty"`
+}
+
+// Expand returns an item and all items connected to it within depth hops
+func (s *Store) Expand(id string, depth int) (*ExpandResult, error) {
+	if err := s.open(); err != nil {
+		return nil, err
+	}
+
+	if depth < 1 {
+		depth = 1
+	}
+
+	entries := s.df.Entries()
+
+	// Check if root item exists
+	if _, ok := entries[id]; !ok {
+		return nil, fmt.Errorf("item %s not found", id)
+	}
+
+	// Build reverse index
+	referencedBy := make(map[string][]string)
+	for entryID, entry := range entries {
+		for _, ref := range entry.Refs {
+			referencedBy[ref] = append(referencedBy[ref], entryID)
+		}
+	}
+
+	// BFS to collect connected items
+	visited := make(map[string]bool)
+	visited[id] = true
+	queue := []struct {
+		id    string
+		depth int
+	}{{id, 0}}
+
+	var connectedIDs []string
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		if current.depth >= depth {
+			continue
+		}
+
+		entry := entries[current.id]
+
+		// Add refs_to (outgoing)
+		for _, refID := range entry.Refs {
+			if !visited[refID] {
+				visited[refID] = true
+				if _, exists := entries[refID]; exists {
+					connectedIDs = append(connectedIDs, refID)
+					queue = append(queue, struct {
+						id    string
+						depth int
+					}{refID, current.depth + 1})
+				}
+			}
+		}
+
+		// Add referenced_by (incoming)
+		for _, refByID := range referencedBy[current.id] {
+			if !visited[refByID] {
+				visited[refByID] = true
+				connectedIDs = append(connectedIDs, refByID)
+				queue = append(queue, struct {
+					id    string
+					depth int
+				}{refByID, current.depth + 1})
+			}
+		}
+	}
+
+	// Sort connected IDs for deterministic output
+	sort.Strings(connectedIDs)
+
+	// Build result
+	rootEntry, err := s.df.Get(id)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &ExpandResult{
+		Root: ExpandedItem{
+			ID:       rootEntry.ID,
+			Type:     rootEntry.Type,
+			Oneliner: rootEntry.Oneliner,
+			Topic:    rootEntry.Topic,
+			Domain:   rootEntry.Domain,
+			Refs:     rootEntry.Refs,
+			Body:     rootEntry.Body,
+		},
+	}
+
+	for _, connID := range connectedIDs {
+		entry, err := s.df.Get(connID)
+		if err != nil {
+			continue
+		}
+		result.Connected = append(result.Connected, ExpandedItem{
+			ID:       entry.ID,
+			Type:     entry.Type,
+			Oneliner: entry.Oneliner,
+			Topic:    entry.Topic,
+			Domain:   entry.Domain,
+			Refs:     entry.Refs,
+			Body:     entry.Body,
+		})
+	}
+
+	return result, nil
+}
+
 // helper to ensure directory exists
 func ensureDir(path string) error {
 	return os.MkdirAll(path, 0755)
