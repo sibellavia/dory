@@ -88,7 +88,7 @@ func (s *Store) Close() error {
 }
 
 // Learn adds a new lesson
-func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary, body string, refs []string) (string, error) {
+func (s *Store) Learn(oneliner, topic string, severity models.Severity, body string, refs []string) (string, error) {
 	if err := s.open(); err != nil {
 		return "", err
 	}
@@ -120,7 +120,7 @@ func (s *Store) Learn(oneliner, topic string, severity models.Severity, summary,
 }
 
 // Decide adds a new decision
-func (s *Store) Decide(oneliner, topic, rationale, summary, body string, refs []string) (string, error) {
+func (s *Store) Decide(oneliner, topic, rationale, body string, refs []string) (string, error) {
 	if err := s.open(); err != nil {
 		return "", err
 	}
@@ -151,7 +151,7 @@ func (s *Store) Decide(oneliner, topic, rationale, summary, body string, refs []
 }
 
 // Pattern adds a new pattern
-func (s *Store) Pattern(oneliner, domain, summary, body string, refs []string) (string, error) {
+func (s *Store) Pattern(oneliner, domain, body string, refs []string) (string, error) {
 	if err := s.open(); err != nil {
 		return "", err
 	}

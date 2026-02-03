@@ -235,6 +235,10 @@ func (df *DoryFile) scan() error {
 
 	// Track current position (after header)
 	pos := int64(len(header))
+	deletedIDs := make(map[string]struct{}, len(df.Index.Deleted))
+	for _, id := range df.Index.Deleted {
+		deletedIDs[id] = struct{}{}
+	}
 
 	for {
 		// Read delimiter line
@@ -286,15 +290,8 @@ func (df *DoryFile) scan() error {
 			continue // Skip malformed entries
 		}
 
-		// Skip deleted entries
-		isDeleted := false
-		for _, delID := range df.Index.Deleted {
-			if delID == entry.ID {
-				isDeleted = true
-				break
-			}
-		}
-		if isDeleted {
+		// Skip deleted entries.
+		if _, isDeleted := deletedIDs[entry.ID]; isDeleted {
 			continue
 		}
 
@@ -382,6 +379,13 @@ func (df *DoryFile) Append(entry *Entry) error {
 		Refs:     entry.Refs,
 	}
 
+	// If this ID was previously deleted, un-tombstone it so reused IDs remain visible on reopen.
+	if removed := df.removeDeletedID(entry.ID); removed {
+		if err := df.saveIndex(); err != nil {
+			return fmt.Errorf("failed to clear deleted state for %s: %w", entry.ID, err)
+		}
+	}
+
 	return nil
 }
 
@@ -444,6 +448,16 @@ func (df *DoryFile) Delete(id string) error {
 	}
 	df.Index.Deleted = append(df.Index.Deleted, id)
 	return df.saveIndex()
+}
+
+func (df *DoryFile) removeDeletedID(id string) bool {
+	for i, deletedID := range df.Index.Deleted {
+		if deletedID == id {
+			df.Index.Deleted = append(df.Index.Deleted[:i], df.Index.Deleted[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 // UpdateState updates the session state

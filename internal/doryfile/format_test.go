@@ -157,3 +157,75 @@ func TestCompactWritesDeterministicOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestDeleteThenReuseIDSurvivesReopen(t *testing.T) {
+	root := filepath.Join(t.TempDir(), ".dory")
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	df, err := Create(root, "test", "")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	now := time.Now()
+	if err := df.Append(&Entry{
+		ID:       "L001",
+		Type:     "lesson",
+		Topic:    "api",
+		Severity: "normal",
+		Oneliner: "First",
+		Created:  now,
+		Body:     "body-1",
+	}); err != nil {
+		t.Fatalf("append L001: %v", err)
+	}
+	if err := df.Append(&Entry{
+		ID:       "L002",
+		Type:     "lesson",
+		Topic:    "api",
+		Severity: "normal",
+		Oneliner: "Second",
+		Created:  now,
+		Body:     "body-2",
+	}); err != nil {
+		t.Fatalf("append first L002: %v", err)
+	}
+
+	if err := df.Delete("L002"); err != nil {
+		t.Fatalf("delete L002: %v", err)
+	}
+
+	if err := df.Append(&Entry{
+		ID:       "L002",
+		Type:     "lesson",
+		Topic:    "api",
+		Severity: "high",
+		Oneliner: "Reused",
+		Created:  now.Add(time.Second),
+		Body:     "body-reused",
+	}); err != nil {
+		t.Fatalf("append reused L002: %v", err)
+	}
+	if err := df.Close(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	df2, err := Open(root)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer df2.Close()
+
+	got, err := df2.Get("L002")
+	if err != nil {
+		t.Fatalf("get reused L002 after reopen: %v", err)
+	}
+	if got.Oneliner != "Reused" || got.Severity != "high" || got.Body != "body-reused" {
+		t.Fatalf("unexpected reused entry: %+v", got)
+	}
+	if len(df2.Index.Deleted) != 0 {
+		t.Fatalf("expected deleted list to be cleared for reused ID, got %v", df2.Index.Deleted)
+	}
+}

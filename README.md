@@ -198,7 +198,6 @@ More runnable examples are available in `examples/plugins/`.
 
 Protocol details and request/response contracts are documented in `docs/plugins/protocol.md`.
 `dory type create` performs plugin-side schema validation via `dory.type.validate` before persisting items.
-Custom store backends are not supported; `.dory` is the only storage backend.
 
 ### Output Formats
 

@@ -31,7 +31,6 @@ Use --body - to read markdown content from stdin:
 		topic, _ := cmd.Flags().GetString("topic")
 		rationale, _ := cmd.Flags().GetString("rationale")
 		bodyFlag, _ := cmd.Flags().GetString("body")
-		summaryFlag, _ := cmd.Flags().GetString("summary")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if topic == "" {
@@ -41,7 +40,7 @@ Use --body - to read markdown content from stdin:
 		s := store.New("")
 		defer s.Close()
 
-		var oneliner, summary, body string
+		var oneliner, body string
 
 		if len(args) > 0 {
 			// Quick mode: oneliner provided
@@ -57,9 +56,6 @@ Use --body - to read markdown content from stdin:
 				body = bodyFlag
 			}
 
-			if summaryFlag != "" {
-				summary = summaryFlag
-			}
 		} else {
 			// Editor mode
 			content, err := openEditor(templates.DecisionTemplate)
@@ -67,7 +63,7 @@ Use --body - to read markdown content from stdin:
 			if content == "" || content == templates.DecisionTemplate {
 				CheckError(fmt.Errorf("aborted: no content provided"))
 			}
-			oneliner, summary, body = parseEditorContent(content)
+			oneliner, body = parseEditorContent(content)
 		}
 
 		runPluginHooks(plugin.HookBeforeCreate, map[string]interface{}{
@@ -78,7 +74,7 @@ Use --body - to read markdown content from stdin:
 			"refs":      refs,
 		})
 
-		id, err := s.Decide(oneliner, topic, rationale, summary, body, refs)
+		id, err := s.Decide(oneliner, topic, rationale, body, refs)
 		CheckError(err)
 
 		runPluginHooks(plugin.HookAfterCreate, map[string]interface{}{
@@ -107,7 +103,6 @@ func init() {
 	decideCmd.Flags().StringP("topic", "t", "", "Topic for the decision (required)")
 	decideCmd.Flags().StringP("rationale", "r", "", "Rationale for the decision")
 	decideCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	decideCmd.Flags().String("summary", "", "Short summary for the decision")
 	decideCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
 	RootCmd.AddCommand(decideCmd)
 }

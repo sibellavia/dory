@@ -45,6 +45,8 @@ func Remove(doryRoot, name string) (string, error) {
 	if err := os.RemoveAll(targetDir); err != nil {
 		return "", err
 	}
-	_ = SetPluginEnabled(doryRoot, resolvedName, false)
+	if err := SetPluginEnabled(doryRoot, resolvedName, false); err != nil {
+		return "", err
+	}
 	return targetDir, nil
 }

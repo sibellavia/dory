@@ -20,7 +20,7 @@ func BenchmarkWrite(b *testing.B) {
 					b.Fatal(err)
 				}
 				for j := 0; j < count; j++ {
-					if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+					if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", nil); err != nil {
 						b.Fatal(err)
 					}
 				}
@@ -43,7 +43,7 @@ func BenchmarkOpen(b *testing.B) {
 				b.Fatal(err)
 			}
 			for j := 0; j < count; j++ {
-				if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+				if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", nil); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -73,7 +73,7 @@ func BenchmarkRandomAccess(b *testing.B) {
 		b.Fatal(err)
 	}
 	for j := 0; j < 100; j++ {
-		if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+		if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", nil); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -100,7 +100,7 @@ func BenchmarkList(b *testing.B) {
 				b.Fatal(err)
 			}
 			for j := 0; j < count; j++ {
-				if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", "", nil); err != nil {
+				if _, err := s.Learn(fmt.Sprintf("Lesson %d", j), "topic", models.SeverityNormal, "", nil); err != nil {
 					b.Fatal(err)
 				}
 			}

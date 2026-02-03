@@ -35,7 +35,6 @@ Use --body - to read markdown content from stdin:
 		severityStr, _ := cmd.Flags().GetString("severity")
 		severity := models.Severity(severityStr)
 		bodyFlag, _ := cmd.Flags().GetString("body")
-		summaryFlag, _ := cmd.Flags().GetString("summary")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if topic == "" {
@@ -46,7 +45,7 @@ Use --body - to read markdown content from stdin:
 		s := store.New("")
 		defer s.Close()
 
-		var oneliner, summary, body string
+		var oneliner, body string
 
 		if len(args) > 0 {
 			// Quick mode: oneliner provided
@@ -62,9 +61,6 @@ Use --body - to read markdown content from stdin:
 				body = bodyFlag
 			}
 
-			if summaryFlag != "" {
-				summary = summaryFlag
-			}
 		} else {
 			// Editor mode
 			content, err := openEditor(templates.LessonTemplate)
@@ -72,7 +68,7 @@ Use --body - to read markdown content from stdin:
 			if content == "" || content == templates.LessonTemplate {
 				CheckError(fmt.Errorf("aborted: no content provided"))
 			}
-			oneliner, summary, body = parseEditorContent(content)
+			oneliner, body = parseEditorContent(content)
 		}
 
 		runPluginHooks(plugin.HookBeforeCreate, map[string]interface{}{
@@ -83,7 +79,7 @@ Use --body - to read markdown content from stdin:
 			"refs":     refs,
 		})
 
-		id, err := s.Learn(oneliner, topic, severity, summary, body, refs)
+		id, err := s.Learn(oneliner, topic, severity, body, refs)
 		CheckError(err)
 
 		runPluginHooks(plugin.HookAfterCreate, map[string]interface{}{
@@ -113,7 +109,6 @@ func init() {
 	learnCmd.Flags().StringP("topic", "t", "", "Topic for the lesson (required)")
 	learnCmd.Flags().StringP("severity", "s", "normal", "Severity level: critical, high, normal, low")
 	learnCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	learnCmd.Flags().String("summary", "", "Short summary for the lesson")
 	learnCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
 	RootCmd.AddCommand(learnCmd)
 }
@@ -155,8 +150,8 @@ func openEditor(initialContent string) (string, error) {
 	return string(content), nil
 }
 
-// parseEditorContent extracts oneliner, summary, and body from editor content
-func parseEditorContent(content string) (oneliner, summary, body string) {
+// parseEditorContent extracts oneliner and body from editor content
+func parseEditorContent(content string) (oneliner, body string) {
 	lines := strings.Split(content, "\n")
 
 	// Find the first heading for oneliner
@@ -171,5 +166,5 @@ func parseEditorContent(content string) (oneliner, summary, body string) {
 	// The body is the full content
 	body = content
 
-	return oneliner, "", body
+	return oneliner, body
 }

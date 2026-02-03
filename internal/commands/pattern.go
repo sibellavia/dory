@@ -30,7 +30,6 @@ Use --body - to read markdown content from stdin:
 
 		domain, _ := cmd.Flags().GetString("domain")
 		bodyFlag, _ := cmd.Flags().GetString("body")
-		summaryFlag, _ := cmd.Flags().GetString("summary")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
 		if domain == "" {
@@ -40,7 +39,7 @@ Use --body - to read markdown content from stdin:
 		s := store.New("")
 		defer s.Close()
 
-		var oneliner, summary, body string
+		var oneliner, body string
 
 		if len(args) > 0 {
 			// Quick mode: oneliner provided
@@ -56,9 +55,6 @@ Use --body - to read markdown content from stdin:
 				body = bodyFlag
 			}
 
-			if summaryFlag != "" {
-				summary = summaryFlag
-			}
 		} else {
 			// Editor mode
 			content, err := openEditor(templates.PatternTemplate)
@@ -66,7 +62,7 @@ Use --body - to read markdown content from stdin:
 			if content == "" || content == templates.PatternTemplate {
 				CheckError(fmt.Errorf("aborted: no content provided"))
 			}
-			oneliner, summary, body = parseEditorContent(content)
+			oneliner, body = parseEditorContent(content)
 		}
 
 		runPluginHooks(plugin.HookBeforeCreate, map[string]interface{}{
@@ -76,7 +72,7 @@ Use --body - to read markdown content from stdin:
 			"refs":     refs,
 		})
 
-		id, err := s.Pattern(oneliner, domain, summary, body, refs)
+		id, err := s.Pattern(oneliner, domain, body, refs)
 		CheckError(err)
 
 		runPluginHooks(plugin.HookAfterCreate, map[string]interface{}{
@@ -103,7 +99,6 @@ Use --body - to read markdown content from stdin:
 func init() {
 	patternCmd.Flags().StringP("domain", "d", "", "Domain for the pattern (required)")
 	patternCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	patternCmd.Flags().String("summary", "", "Short summary for the pattern")
 	patternCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L001,D002)")
 	RootCmd.AddCommand(patternCmd)
 }

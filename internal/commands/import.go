@@ -121,12 +121,12 @@ func importItem(s *store.Store, itemType, oneliner, body, topic, domain string, 
 		if topic == "" {
 			return "", fmt.Errorf("--topic is required for lessons")
 		}
-		return s.Learn(oneliner, topic, severity, "", body, refs)
+		return s.Learn(oneliner, topic, severity, body, refs)
 	case "decision":
 		if topic == "" {
 			return "", fmt.Errorf("--topic is required for decisions")
 		}
-		return s.Decide(oneliner, topic, "", "", body, refs)
+		return s.Decide(oneliner, topic, "", body, refs)
 	case "pattern":
 		if domain == "" {
 			domain = topic
@@ -134,7 +134,7 @@ func importItem(s *store.Store, itemType, oneliner, body, topic, domain string, 
 		if domain == "" {
 			return "", fmt.Errorf("--domain is required for patterns")
 		}
-		return s.Pattern(oneliner, domain, "", body, refs)
+		return s.Pattern(oneliner, domain, body, refs)
 	default:
 		return "", fmt.Errorf("unknown type %q (use lesson, decision, or pattern)", itemType)
 	}
