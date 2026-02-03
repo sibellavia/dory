@@ -1,8 +1,9 @@
 project: dory
 state:
-    goal: Build dory - knowledge store for coding agents
-    progress: Removed legacy backend, unified store naming, and hardened I/O/error handling with new regression tests
+    goal: Stabilize plugin branch and plan next extension work
+    progress: Fixed reused-ID tombstone issue, removed unused --summary flags, and added regression tests
     next:
-        - Review and commit backend cleanup + quality improvements
-        - Optionally tag release after commit
-    last_updated: "2026-02-02T20:15:51+01:00"
+        - Commit the cleanup + bugfix patch
+        - Decide whether to continue plugin scope now or pause
+        - Optionally prototype a TUI plugin spike
+    last_updated: "2026-02-03T11:56:11+01:00"

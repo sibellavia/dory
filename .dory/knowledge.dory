@@ -885,3 +885,46 @@ body: |
     - New plugin authors can copy and adapt a working reference.
     - Validation flow can be tested quickly with local `dory plugin install ... --enable` and `dory type create ...` commands.
 
+===
+id: L010
+type: lesson
+topic: storage
+severity: high
+oneliner: Reusing deleted IDs required clearing tombstones on append
+created: 2026-02-03T11:55:58.166029+01:00
+refs:
+    - D011
+body: |-
+    # Reused IDs and Tombstones
+
+    ## Symptom
+    After deleting an item and creating a new item with the same ID, the new item disappeared after reopen.
+
+    ## Root Cause
+    Deleted IDs were tracked in `index.yaml.deleted` and scan skipped all entries with those IDs, including newly appended ones.
+
+    ## Fix
+    When appending an entry, remove its ID from deleted tombstones and persist index. Added regression tests for delete->reuse->reopen.
+
+===
+id: D019
+type: decision
+topic: cli
+oneliner: Remove --summary from learn/decide/pattern until it is stored
+created: 2026-02-03T11:56:05.516498+01:00
+refs:
+    - L010
+body: |-
+    # Remove Unused Summary Flag
+
+    ## Context
+    `--summary` was parsed in create commands but not persisted in storage, creating misleading UX.
+
+    ## Decision
+    Remove `--summary` from `learn`, `decide`, and `pattern` for now.
+
+    ## Rationale
+    - Avoids false expectations
+    - Keeps CLI behavior aligned with persisted model
+    - Can be reintroduced later with explicit schema support
+
