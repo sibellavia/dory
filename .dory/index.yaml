@@ -1,13 +1,12 @@
-version: 2
 format: doryfile-v1
 project: dory
 state:
-    goal: Make Dory CLI maximally native for coding agents
-    progress: Completed major UX consistency fixes and machine-contract hardening
+    goal: CLI UX improvements for agent-native experience
+    progress: 'Reduced 22→19 commands: unified create, merged status into context, renamed topics→tags, fixed -s collision, added --tag flag, kubectl-style edit'
     next:
-        - Review remaining command overlap (e.g.
-        - ' recall vs list)'
-        - Consider agent-mode defaults for non-interactive execution
+        - 'Hide low-use commands: compact/completion/refs/graph/plugin/type'
+        - Update README and DORY.md docs for new CLI
+        - Consider merging refs into show --refs
     working_files:
         - internal/commands/root.go
         - internal/commands/graph.go
@@ -15,12 +14,9 @@ state:
         - internal/store/read_ops.go
     open_questions:
         - Do we want to formally deprecate recall in favor of list/context for agent flows?
-    last_updated: "2026-02-03T20:02:06Z"
-deleted:
-    - D-01KGJJST4CAHYRVNCEA4JM32HK
-    - L-01KGJJSTH3BGHG867K27XE9R77
-applied_seq: 51
-log_offset: 44009
+    last_updated: "2026-02-04T09:00:15Z"
+applied_seq: 46
+log_offset: 43131
 heads:
     D-01KGJ5XFHD1R0BDD9NVCARY3BH:
         type: decision
@@ -30,17 +26,17 @@ heads:
         refs:
             - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
             - D-01KGJ5XFHDMJ37527WJVED81P1
-        body_offset: 297
+        body_offset: 777
         body_len: 1637
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHD3T054HGW6VQH1QAX:
         type: decision
         topic: architecture
         oneliner: Adopt single-file storage format (knowledge.dory + index.yaml)
         created: 2026-02-02T10:55:51.887336+01:00
-        body_offset: 1938
+        body_offset: 2418
         body_len: 1455
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHD5PQ5CSCNNF93F3BV:
         type: decision
         topic: architecture
@@ -48,49 +44,49 @@ heads:
         created: 2026-02-03T16:14:21.006613+01:00
         refs:
             - D-01KGJ5XFHDXV313S1P9S3538EA
-        body_offset: 3397
+        body_offset: 3877
         body_len: 897
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHD6ASSYHZ8PN2DEJ1B:
         type: decision
         topic: architecture
         oneliner: Separate index.yaml from knowledge files
         created: 2026-01-31T00:00:00Z
-        body_offset: 4298
+        body_offset: 4778
         body_len: 484
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHD7Y8ZK457TB96DJ1P:
         type: decision
         topic: architecture
         oneliner: Full RFC3339 timestamps in .eng files
         created: 2026-02-01T19:00:31+01:00
-        body_offset: 4786
+        body_offset: 5266
         body_len: 534
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDAG481R0MS6TAN99Q:
         type: decision
         topic: architecture
         oneliner: Use refs in frontmatter as source of truth with auto-generated edges in index
         created: 2026-02-01T00:00:00Z
-        body_offset: 5324
+        body_offset: 5804
         body_len: 1132
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDBH6RSCQ5GW9MDK2Q:
         type: decision
         topic: architecture
         oneliner: Add dory context command for agent session start
         created: 2026-02-03T15:28:44.264485+01:00
-        body_offset: 6460
+        body_offset: 6940
         body_len: 1446
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDBRS1NV1S1GQ3RQYW:
         type: decision
         topic: architecture
         oneliner: Remove status field from decisions
         created: 2026-02-01T19:00:49+01:00
-        body_offset: 7910
+        body_offset: 8390
         body_len: 473
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDC3YPDDPFT1D79RKB:
         type: decision
         topic: plugin
@@ -99,33 +95,33 @@ heads:
         refs:
             - L-01KGJ5XFHD1P40J6ZY5GR1DRT8
             - D-01KGJ5XFHDRSG1R872RQVATTEM
-        body_offset: 8387
+        body_offset: 8867
         body_len: 951
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDEZ82FD6K62C9TPG5:
         type: decision
         topic: branding
         oneliner: Name the tool Dory after Finding Nemo character
         created: 2026-01-31T00:00:00Z
-        body_offset: 9342
+        body_offset: 9822
         body_len: 492
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDGNTH7E446N8YGZPK:
         type: decision
         topic: integration
         oneliner: Auto-append dory instructions on init
         created: 2026-02-01T00:00:00Z
-        body_offset: 9838
+        body_offset: 10318
         body_len: 696
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDJ4ADNYHZQQY35AG9:
         type: decision
         topic: architecture
         oneliner: Store oneliner in .eng frontmatter
         created: 2026-01-31T00:00:00Z
-        body_offset: 10538
+        body_offset: 11018
         body_len: 457
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDJQ6TPD9EJWG33HYK:
         type: decision
         topic: architecture
@@ -135,9 +131,9 @@ heads:
             - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
             - D-01KGJ5XFHDMJ37527WJVED81P1
             - D-01KGJ5XFHD1R0BDD9NVCARY3BH
-        body_offset: 10999
+        body_offset: 11479
         body_len: 1361
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDMJ37527WJVED81P1:
         type: decision
         topic: architecture
@@ -145,9 +141,9 @@ heads:
         created: 2026-02-03T08:46:18.228866+01:00
         refs:
             - D-01KGJ5XFHDSMFY8NMY5MGWAVR8
-        body_offset: 12364
+        body_offset: 12844
         body_len: 1954
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDPMP1D6A4733M6Z3R:
         type: decision
         topic: cli
@@ -155,9 +151,9 @@ heads:
         created: 2026-02-03T11:56:05.516498+01:00
         refs:
             - L-01KGJ5XFHDAZSKCDYMVDDNYWW9
-        body_offset: 14322
+        body_offset: 14802
         body_len: 714
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDQPP7NZ970S06NJ2M:
         type: decision
         topic: architecture
@@ -166,9 +162,9 @@ heads:
         refs:
             - D-01KGJ5XFHD1R0BDD9NVCARY3BH
             - D-01KGJ5XFHDRSG1R872RQVATTEM
-        body_offset: 15040
+        body_offset: 15520
         body_len: 1294
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDQSBQ7WE9Q6R1PQZD:
         type: decision
         topic: architecture
@@ -176,9 +172,9 @@ heads:
         created: 2026-02-02T20:15:51.467774+01:00
         refs:
             - D-01KGJ5XFHD3T054HGW6VQH1QAX
-        body_offset: 16338
+        body_offset: 16818
         body_len: 501
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDRSG1R872RQVATTEM:
         type: decision
         topic: architecture
@@ -189,17 +185,17 @@ heads:
             - D-01KGJ5XFHDMJ37527WJVED81P1
             - D-01KGJ5XFHD1R0BDD9NVCARY3BH
             - D-01KGJ5XFHDJQ6TPD9EJWG33HYK
-        body_offset: 16843
+        body_offset: 17323
         body_len: 1439
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDSGAY329ZF77ZRTB5:
         type: decision
         topic: file-format
         oneliner: YAML frontmatter + Markdown body for .eng files
         created: 2026-01-31T00:00:00Z
-        body_offset: 18286
+        body_offset: 18766
         body_len: 503
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDSMFY8NMY5MGWAVR8:
         type: decision
         topic: architecture
@@ -208,17 +204,17 @@ heads:
         refs:
             - D-01KGJ5XFHD3T054HGW6VQH1QAX
             - D-01KGJ5XFHDQSBQ7WE9Q6R1PQZD
-        body_offset: 18793
+        body_offset: 19273
         body_len: 5092
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDX51S9W5W1C6FHKV8:
         type: decision
         topic: architecture
         oneliner: Use Cobra for CLI framework
         created: 2026-01-31T00:00:00Z
-        body_offset: 24714
+        body_offset: 25194
         body_len: 446
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDX2169GCGAJ0C3AKX:
         type: decision
         topic: architecture
@@ -226,9 +222,9 @@ heads:
         created: 2026-02-01T00:00:00Z
         refs:
             - D-01KGJ5XFHD6ASSYHZ8PN2DEJ1B
-        body_offset: 23889
+        body_offset: 24369
         body_len: 821
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJ5XFHDXV313S1P9S3538EA:
         type: decision
         topic: architecture
@@ -236,33 +232,41 @@ heads:
         created: 2026-02-03T15:28:13.447215+01:00
         refs:
             - D-01KGJ5XFHDAG481R0MS6TAN99Q
-        body_offset: 25164
+        body_offset: 25644
         body_len: 2076
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJENA5FW5Y4XXFXYF4VVZ3H:
         type: decision
         topic: storage
         oneliner: Use .dory as the canonical implementation tracker
         created: 2026-02-03T19:11:24.335726Z
-        body_offset: 36570
+        body_offset: 27724
         body_len: 656
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJHJ5BCCMWS1813B2ERXN2N:
         type: decision
         topic: cli
         oneliner: Standardize agent-facing CLI behavior and machine contracts
         created: 2026-02-03T20:02:06.828112Z
-        body_offset: 39482
+        body_offset: 28384
         body_len: 612
-        last_event_seq: 51
+        last_event_seq: 46
     D-01KGJJTC7S5K77PPKX3A38M5SF:
         type: decision
         topic: cli-ux
         oneliner: Canonical retrieval command is list --topic; recall remains hidden compatibility alias
         created: 2026-02-03T20:24:04.60141Z
-        body_offset: 42809
+        body_offset: 29000
         body_len: 743
-        last_event_seq: 51
+        last_event_seq: 46
+    D-01KGKY3CP19N0RAVH5PHZ2NZ4T:
+        type: decision
+        topic: cli
+        oneliner: 'CLI UX overhaul: unified commands and kubectl-style patterns'
+        created: 2026-02-04T09:00:28.737601Z
+        body_offset: 29747
+        body_len: 1052
+        last_event_seq: 46
     L-01KGJ5XFHD1P40J6ZY5GR1DRT8:
         type: lesson
         topic: plugin
@@ -272,36 +276,36 @@ heads:
         refs:
             - D-01KGJ5XFHDRSG1R872RQVATTEM
             - D-01KGJ5XFHDPMP1D6A4733M6Z3R
-        body_offset: 27244
+        body_offset: 30803
         body_len: 1105
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHD4NY0MRTHAYF0GYX7:
         type: lesson
         topic: architecture
         severity: high
         oneliner: Scan-on-open beats persistent offsets for corruption resistance
         created: 2026-02-02T10:56:03.695826+01:00
-        body_offset: 28353
+        body_offset: 31912
         body_len: 1107
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHD6NJMXH4RJF8VG02D:
         type: lesson
         topic: architecture
         severity: high
         oneliner: Rebuild loses oneliners if not stored in frontmatter
         created: 2026-01-31T00:00:00Z
-        body_offset: 29464
+        body_offset: 33023
         body_len: 344
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHD7520DHDRHBATFEYK:
         type: lesson
         topic: architecture
         severity: critical
         oneliner: Document store for AI agents - explore single-file, text-based, queryable format
         created: 2026-02-01T22:02:21+01:00
-        body_offset: 29812
+        body_offset: 33371
         body_len: 964
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDAZSKCDYMVDDNYWW9:
         type: lesson
         topic: storage
@@ -310,27 +314,27 @@ heads:
         created: 2026-02-03T11:55:58.166029+01:00
         refs:
             - D-01KGJ5XFHD3T054HGW6VQH1QAX
-        body_offset: 30780
+        body_offset: 34339
         body_len: 775
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDEC4MRCAFY7B7W4EE:
         type: lesson
         topic: test
         severity: normal
         oneliner: Test heredoc approach
         created: 2026-02-02T12:26:33.360858+01:00
-        body_offset: 31559
+        body_offset: 35118
         body_len: 364
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDPXK9QYYPZS5F6NMP:
         type: lesson
         topic: git
         severity: normal
         oneliner: Use /dory not dory in .gitignore to avoid ignoring cmd/dory
         created: 2026-01-31T00:00:00Z
-        body_offset: 31927
+        body_offset: 35486
         body_len: 351
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDSSPAZ2NV2K3AEE4J:
         type: lesson
         topic: storage
@@ -339,18 +343,18 @@ heads:
         created: 2026-02-02T20:15:51.749383+01:00
         refs:
             - L-01KGJ5XFHDY94GPTM4RZVZA4E1
-        body_offset: 32282
+        body_offset: 35841
         body_len: 400
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDTSBX8NRANHEZW71G:
         type: lesson
         topic: performance
         severity: critical
         oneliner: Test lesson for edit
         created: 2026-02-02T12:06:59.204086+01:00
-        body_offset: 32686
+        body_offset: 36245
         body_len: 231
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDWCPPMK5616DT7XDR:
         type: lesson
         topic: architecture
@@ -359,18 +363,18 @@ heads:
         created: 2026-02-01T22:31:52+01:00
         refs:
             - L-01KGJ5XFHD7520DHDRHBATFEYK
-        body_offset: 32921
+        body_offset: 36480
         body_len: 1217
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJ5XFHDY94GPTM4RZVZA4E1:
         type: lesson
         topic: storage
         severity: normal
         oneliner: Emojis and special Unicode characters force YAML quoted style
         created: 2026-02-02T12:21:49.796364+01:00
-        body_offset: 34142
+        body_offset: 37701
         body_len: 940
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJENA8KB3CS6WDT2970NXYJ:
         type: lesson
         topic: storage
@@ -379,9 +383,9 @@ heads:
         created: 2026-02-03T19:11:24.435605Z
         refs:
             - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
-        body_offset: 37230
+        body_offset: 38645
         body_len: 939
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJHJ5CBP92F5ETVSM4C5507:
         type: lesson
         topic: cli
@@ -390,52 +394,52 @@ heads:
         created: 2026-02-03T20:02:06.859968Z
         refs:
             - D-01KGJHJ5BCCMWS1813B2ERXN2N
-        body_offset: 40098
+        body_offset: 39588
         body_len: 901
-        last_event_seq: 51
+        last_event_seq: 46
     L-01KGJJTCB0C3NQBM72RJWN0M93:
         type: lesson
         topic: cli-ux
         severity: high
         oneliner: In --agent mode list defaults to chronological sort unless --sort is explicitly set
         created: 2026-02-03T20:24:04.704093Z
-        body_offset: 43556
+        body_offset: 40493
         body_len: 453
-        last_event_seq: 51
+        last_event_seq: 46
     P-01KGJ5XFHD22R0HGSNTBFW8RDA:
-        type: pattern
+        type: convention
         domain: cli
         oneliner: Editor mode for humans, --body flag for agents
         created: 2026-02-01T00:00:00Z
         refs:
             - P-01KGJ5XFHDHB2XG8N5NMAG6FR1
-        body_offset: 35086
-        body_len: 622
-        last_event_seq: 51
+        body_offset: 40950
+        body_len: 625
+        last_event_seq: 46
     P-01KGJ5XFHDDNGGSDMG5WGRW075:
-        type: pattern
+        type: convention
         domain: cli
         oneliner: All commands support --json and --yaml output flags
         created: 2026-01-31T00:00:00Z
-        body_offset: 35712
-        body_len: 419
-        last_event_seq: 51
+        body_offset: 41579
+        body_len: 422
+        last_event_seq: 46
     P-01KGJ5XFHDHB2XG8N5NMAG6FR1:
-        type: pattern
+        type: convention
         domain: cli
         oneliner: Use --body flag or stdin for programmatic content input
         created: 2026-01-31T00:00:00Z
-        body_offset: 36135
-        body_len: 431
-        last_event_seq: 51
+        body_offset: 42005
+        body_len: 434
+        last_event_seq: 46
     P-01KGJENABRNSD6GW6RZ3BQQ9M3:
-        type: pattern
+        type: convention
         domain: workflow
         oneliner: Record project progress with status + typed knowledge items
         created: 2026-02-03T19:11:24.536648Z
         refs:
             - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
             - L-01KGJENA8KB3CS6WDT2970NXYJ
-        body_offset: 38173
-        body_len: 685
-        last_event_seq: 51
+        body_offset: 42443
+        body_len: 688
+        last_event_seq: 46

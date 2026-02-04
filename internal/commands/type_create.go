@@ -21,7 +21,7 @@ var typeCreateCmd = &cobra.Command{
 
 		itemType := args[0]
 		oneliner := strings.Join(args[1:], " ")
-		topic, _ := cmd.Flags().GetString("topic")
+		topic := resolveTag(cmd, "topic")
 		bodyFlag, _ := cmd.Flags().GetString("body")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 		validateTimeout, _ := cmd.Flags().GetDuration("validate-timeout")
@@ -117,9 +117,11 @@ var typeCreateCmd = &cobra.Command{
 }
 
 func init() {
-	typeCreateCmd.Flags().StringP("topic", "t", "", "Optional topic for this item")
+	typeCreateCmd.Flags().StringP("tag", "T", "", "Optional tag/category for this item")
+	typeCreateCmd.Flags().StringP("topic", "t", "", "Alias for --tag (deprecated)")
 	typeCreateCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	typeCreateCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L-01JX...,D-01JY...)")
+	typeCreateCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other items (comma-separated, e.g., L-abc123,D-def456)")
 	typeCreateCmd.Flags().Duration("validate-timeout", 2*time.Second, "Custom type validation timeout")
+	typeCreateCmd.Flags().MarkHidden("topic")
 	typeCmd.AddCommand(typeCreateCmd)
 }

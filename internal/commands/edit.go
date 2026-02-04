@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,40 +19,155 @@ import (
 
 var editCmd = &cobra.Command{
 	Use:   "edit <id>",
-	Short: "Edit an item in your editor or update metadata inline",
-	Long: `Opens the item in your $EDITOR. After editing, the item is updated in the knowledge store.
+	Short: "Edit an item using apply, patch, or inline flags",
+	Long: `Update a knowledge item. Supports multiple modes for different workflows:
 
-If flags are provided (--severity, --topic, etc.), updates metadata inline without opening the editor.
+AGENT-FRIENDLY MODES:
 
-Examples:
-  dory edit L-01JX...                      # Open in editor
-  dory edit L-01JX... --severity critical  # Update severity inline
-  dory edit L-01JX... --topic networking   # Update topic inline
-  dory edit D-01JX... --refs L-01JX...,L-01JY...  # Update refs inline`,
+  --apply (like kubectl apply -f -)
+    Read full YAML from stdin to update fields:
+      echo 'tag: networking
+      severity: critical
+      oneliner: New title' | dory edit L-abc123 --apply -
+
+  --patch (like kubectl patch)
+    Partial JSON update:
+      dory edit L-abc123 --patch '{"tag":"networking","severity":"critical"}'
+
+  Inline flags:
+      dory edit L-abc123 --tag networking --severity critical
+
+HUMAN MODE:
+
+  No flags opens $EDITOR (not recommended for agents)
+
+APPLY/PATCH FIELDS:
+  tag, severity, oneliner, body, refs (array)`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
 		id := args[0]
 
-		// Check if any inline flags were provided
+		applyFlag, _ := cmd.Flags().GetString("apply")
+		patchFlag, _ := cmd.Flags().GetString("patch")
+
+		// Priority 1: Apply mode (full YAML)
+		if applyFlag != "" {
+			editApply(cmd, id, applyFlag)
+			return
+		}
+
+		// Priority 2: Patch mode (JSON)
+		if patchFlag != "" {
+			editPatch(cmd, id, patchFlag)
+			return
+		}
+
+		// Priority 3: Inline flags
 		severity, _ := cmd.Flags().GetString("severity")
-		topic, _ := cmd.Flags().GetString("topic")
-		domain, _ := cmd.Flags().GetString("domain")
+		tag := resolveTag(cmd, "topic")
+		if tag == "" {
+			tag = resolveTag(cmd, "domain")
+		}
+		topic := tag
+		domain := tag
 		oneliner, _ := cmd.Flags().GetString("oneliner")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
-		hasInlineFlags := severity != "" || topic != "" || domain != "" || oneliner != "" || len(refs) > 0
+		hasInlineFlags := severity != "" || tag != "" || oneliner != "" || len(refs) > 0
 
 		if hasInlineFlags {
-			// Inline update mode
 			editInline(cmd, id, severity, topic, domain, oneliner, refs)
 			return
 		}
 
-		// Editor mode (original behavior)
+		// Priority 4: Editor mode (for humans)
 		editWithEditor(cmd, id)
 	},
+}
+
+// editPatch represents the fields that can be patched
+type editPatchData struct {
+	Tag      string   `json:"tag" yaml:"tag"`
+	Severity string   `json:"severity" yaml:"severity"`
+	Oneliner string   `json:"oneliner" yaml:"oneliner"`
+	Body     string   `json:"body" yaml:"body"`
+	Refs     []string `json:"refs" yaml:"refs"`
+}
+
+func editApply(cmd *cobra.Command, id, applyFlag string) {
+	var data []byte
+	var err error
+
+	if applyFlag == "-" {
+		data, err = io.ReadAll(os.Stdin)
+		CheckError(err)
+	} else {
+		data, err = os.ReadFile(applyFlag)
+		CheckError(err)
+	}
+
+	var patch editPatchData
+	CheckError(yaml.Unmarshal(data, &patch))
+
+	applyPatch(cmd, id, &patch)
+}
+
+func editPatch(cmd *cobra.Command, id, patchJSON string) {
+	var patch editPatchData
+	CheckError(json.Unmarshal([]byte(patchJSON), &patch))
+
+	applyPatch(cmd, id, &patch)
+}
+
+func applyPatch(cmd *cobra.Command, id string, patch *editPatchData) {
+	s := store.New(doryRoot)
+	defer s.Close()
+
+	entry, err := s.GetEntry(id)
+	CheckError(err)
+
+	var updated []string
+
+	if patch.Tag != "" {
+		entry.Topic = patch.Tag
+		entry.Domain = patch.Tag
+		updated = append(updated, "tag")
+	}
+	if patch.Severity != "" {
+		CheckError(validateSeverityFlag(models.Severity(patch.Severity)))
+		entry.Severity = patch.Severity
+		updated = append(updated, "severity")
+	}
+	if patch.Oneliner != "" {
+		entry.Oneliner = patch.Oneliner
+		updated = append(updated, "oneliner")
+	}
+	if patch.Body != "" {
+		entry.Body = patch.Body
+		updated = append(updated, "body")
+	}
+	if len(patch.Refs) > 0 {
+		entry.Refs = patch.Refs
+		updated = append(updated, "refs")
+	}
+
+	if len(updated) == 0 {
+		CheckError(fmt.Errorf("no fields to update in patch"))
+	}
+
+	CheckError(s.UpdateEntry(entry))
+
+	result := map[string]interface{}{
+		"id":      id,
+		"status":  "patched",
+		"updated": updated,
+	}
+
+	OutputResult(cmd, result, func() {
+		fmt.Printf("Patched %s: %s\n", id, strings.Join(updated, ", "))
+	})
 }
 
 func editInline(cmd *cobra.Command, id, severity, topic, domain, oneliner string, refs []string) {
@@ -244,10 +361,18 @@ func parseEditedContent(content string) (*doryfile.Entry, error) {
 }
 
 func init() {
-	editCmd.Flags().StringP("severity", "s", "", "Update severity: critical, high, normal, low")
-	editCmd.Flags().StringP("topic", "t", "", "Update topic")
-	editCmd.Flags().StringP("domain", "d", "", "Update domain")
+	// Agent-friendly modes
+	editCmd.Flags().StringP("apply", "a", "", "Apply YAML from file or stdin (-)")
+	editCmd.Flags().StringP("patch", "p", "", "Patch with JSON (e.g., '{\"tag\":\"net\"}')")
+
+	// Inline flags
+	editCmd.Flags().StringP("severity", "S", "", "Update severity: critical, high, normal, low")
+	editCmd.Flags().StringP("tag", "T", "", "Update tag/category")
+	editCmd.Flags().StringP("topic", "t", "", "Alias for --tag (deprecated)")
+	editCmd.Flags().StringP("domain", "d", "", "Alias for --tag (deprecated)")
 	editCmd.Flags().StringP("oneliner", "o", "", "Update oneliner/title")
-	editCmd.Flags().StringSliceP("refs", "R", nil, "Update references (replaces existing)")
+	editCmd.Flags().StringSliceP("refs", "R", nil, "Update references (comma-separated, replaces existing)")
+	editCmd.Flags().MarkHidden("topic")
+	editCmd.Flags().MarkHidden("domain")
 	RootCmd.AddCommand(editCmd)
 }

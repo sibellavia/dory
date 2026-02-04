@@ -214,7 +214,6 @@ func TestOpenRejectsUnsupportedIndexFormat(t *testing.T) {
 	if err := yaml.Unmarshal(indexRaw, &idx); err != nil {
 		t.Fatalf("unmarshal index: %v", err)
 	}
-	idx.Version = 0
 	idx.Format = "invalid-format"
 	indexRaw, err = yaml.Marshal(&idx)
 	if err != nil {
@@ -227,10 +226,10 @@ func TestOpenRejectsUnsupportedIndexFormat(t *testing.T) {
 	df2, err := Open(root)
 	if err == nil {
 		df2.Close()
-		t.Fatal("expected open to fail for unsupported index format")
+		t.Fatal("expected open to fail for unsupported format")
 	}
-	if !strings.Contains(err.Error(), "unsupported index format") {
-		t.Fatalf("expected unsupported index format error, got: %v", err)
+	if !strings.Contains(err.Error(), "unsupported format") {
+		t.Fatalf("expected unsupported format error, got: %v", err)
 	}
 }
 

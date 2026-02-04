@@ -2,11 +2,20 @@ DORYFILE:v1
 ---
 op: state.update
 state:
-    goal: Improve agent experience with graph traversal and context commands
-    progress: Implemented refs, expand, graph, context commands; updated README.md and DORY.md
+    goal: CLI UX improvements for agent-native experience
+    progress: 'Reduced 22→19 commands: unified create, merged status into context, renamed topics→tags, fixed -s collision, added --tag flag, kubectl-style edit'
     next:
-        - Commit changes
-    last_updated: "2026-02-03T16:27:50+01:00"
+        - 'Hide low-use commands: compact/completion/refs/graph/plugin/type'
+        - Update README and DORY.md docs for new CLI
+        - Consider merging refs into show --refs
+    working_files:
+        - internal/commands/root.go
+        - internal/commands/graph.go
+        - internal/commands/import.go
+        - internal/store/read_ops.go
+    open_questions:
+        - Do we want to formally deprecate recall in favor of list/context for agent flows?
+    last_updated: "2026-02-04T09:00:15Z"
 ---
 op: item.create
 item:
@@ -774,6 +783,95 @@ item:
 ---
 op: item.create
 item:
+    id: D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+    type: decision
+    topic: storage
+    oneliner: Use .dory as the canonical implementation tracker
+    created: 2026-02-03T19:11:24.335726Z
+    body: |
+        # Decision
+
+        Track implementation progress directly in `.dory` rather than external planning docs.
+
+        ## Scope
+
+        - Planning milestones
+        - Validation results (CLI sweeps, stress tests)
+        - Open questions and next actions
+
+        ## Consequences
+
+        - Agents can reconstruct history via `list`, `show`, `refs`, `context`.
+        - Reduced doc drift between design notes and actual runtime state.
+---
+op: item.create
+item:
+    id: D-01KGJHJ5BCCMWS1813B2ERXN2N
+    type: decision
+    topic: cli
+    oneliner: Standardize agent-facing CLI behavior and machine contracts
+    created: 2026-02-03T20:02:06.828112Z
+    body: |
+        # Decision
+
+        Adopt an agent-first CLI contract:
+
+        - `graph` and `import` must honor `--json/--yaml`.
+        - Invalid `--format` must fail fast.
+        - Commands should resolve `.dory` from current or parent directories.
+        - Non-interactive runs must not block on prompts.
+        - List outputs should include precise timestamps for chronology (`created_at`).
+---
+op: item.create
+item:
+    id: D-01KGJJTC7S5K77PPKX3A38M5SF
+    type: decision
+    topic: cli-ux
+    oneliner: Canonical retrieval command is list --topic; recall remains hidden compatibility alias
+    created: 2026-02-03T20:24:04.60141Z
+    body: |
+        # Decision
+
+        ## Context
+        Agents were seeing overlap between `recall` and `list --topic`, with different output schemas.
+
+        ## Decision
+        Use `list --topic` as the canonical retrieval flow. Keep `recall` hidden as a compatibility alias that returns the same payload shape as `list`.
+
+        ## Consequences
+        - Less command-surface ambiguity for agents
+        - One list payload schema to parse
+        - Old scripts can still call `recall` when needed
+---
+op: item.create
+item:
+    id: D-01KGKY3CP19N0RAVH5PHZ2NZ4T
+    type: decision
+    topic: cli
+    oneliner: 'CLI UX overhaul: unified commands and kubectl-style patterns'
+    created: 2026-02-04T09:00:28.737601Z
+    body: |-
+        # CLI UX Overhaul
+
+        ## Changes Made
+        - Unified `learn`/`decide`/`pattern` → single `create --kind` command
+        - Merged `status` into `context` (read without flags, write with flags)
+        - Renamed `topics` → `tags` for consistency with `--tag` flag
+        - Changed severity shorthand `-s` → `-S` to avoid collision with sort
+        - Unified `--topic`/`--domain` → `--tag` across all commands
+        - Added kubectl-style `edit --apply` and `edit --patch` for agents
+
+        ## Rationale
+        - Fewer commands = easier mental model for agents
+        - Consistent flag naming reduces confusion
+        - kubectl patterns are familiar to coding agents
+        - Write mode returning full state eliminates verify round-trips
+
+        ## Result
+        Reduced from 22 → 19 commands
+---
+op: item.create
+item:
     id: L-01KGJ5XFHD1P40J6ZY5GR1DRT8
     type: lesson
     topic: plugin
@@ -1011,89 +1109,6 @@ item:
 ---
 op: item.create
 item:
-    id: P-01KGJ5XFHD22R0HGSNTBFW8RDA
-    type: pattern
-    domain: cli
-    oneliner: Editor mode for humans, --body flag for agents
-    created: 2026-02-01T00:00:00Z
-    refs:
-        - P-01KGJ5XFHDHB2XG8N5NMAG6FR1
-    body: |-
-        # Dual Interface Pattern
-
-        ## For Humans
-
-        - Omit arguments to open $EDITOR with template
-        - `dory learn --topic foo` opens editor
-        - `dory edit D001` edits existing item
-
-        ## For Agents
-
-        - Use `--body "content"` flag for inline content
-        - Use `--body -` to pipe from stdin
-        - Programmatic, non-interactive
----
-op: item.create
-item:
-    id: P-01KGJ5XFHDDNGGSDMG5WGRW075
-    type: pattern
-    domain: cli
-    oneliner: All commands support --json and --yaml output flags
-    created: 2026-01-31T00:00:00Z
-    body: |-
-        # All commands support --json and --yaml output flags
-
-        ## Pattern
-
-        All commands support --json and --yaml output flags
-
-        ## Implementation
-
-        (Add implementation details here)
----
-op: item.create
-item:
-    id: P-01KGJ5XFHDHB2XG8N5NMAG6FR1
-    type: pattern
-    domain: cli
-    oneliner: Use --body flag or stdin for programmatic content input
-    created: 2026-01-31T00:00:00Z
-    body: |-
-        # Use --body flag or stdin for programmatic content input
-
-        ## Pattern
-
-        Use --body flag or stdin for programmatic content input
-
-        ## Implementation
-
-        (Add implementation details here)
----
-op: item.create
-item:
-    id: D-01KGJENA5FW5Y4XXFXYF4VVZ3H
-    type: decision
-    topic: storage
-    oneliner: Use .dory as the canonical implementation tracker
-    created: 2026-02-03T19:11:24.335726Z
-    body: |
-        # Decision
-
-        Track implementation progress directly in `.dory` rather than external planning docs.
-
-        ## Scope
-
-        - Planning milestones
-        - Validation results (CLI sweeps, stress tests)
-        - Open questions and next actions
-
-        ## Consequences
-
-        - Agents can reconstruct history via `list`, `show`, `refs`, `context`.
-        - Reduced doc drift between design notes and actual runtime state.
----
-op: item.create
-item:
     id: L-01KGJENA8KB3CS6WDT2970NXYJ
     type: lesson
     topic: storage
@@ -1120,61 +1135,6 @@ item:
 ---
 op: item.create
 item:
-    id: P-01KGJENABRNSD6GW6RZ3BQQ9M3
-    type: pattern
-    domain: workflow
-    oneliner: Record project progress with status + typed knowledge items
-    created: 2026-02-03T19:11:24.536648Z
-    refs:
-        - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
-        - L-01KGJENA8KB3CS6WDT2970NXYJ
-    body: |
-        # Pattern
-
-        Use `status` for live session state and typed entries for persistent evidence.
-
-        ## Workflow
-
-        1. Update `status` when focus changes.
-        2. Store major architecture choices as `decision` items.
-        3. Store validation outcomes and caveats as `lesson` items.
-        4. Link related items via `refs` for navigable history.
----
-op: state.update
-state:
-    goal: Track implementation and validation directly in .dory
-    progress: Added canonical tracking decision, validation lesson, and workflow pattern into local .dory
-    next:
-        - Continue implementation tasks while updating .dory items in real time
-        - Keep refs updated between decisions/lessons/patterns
-    working_files:
-        - internal/doryfile/open_scan.go
-        - internal/store/lifecycle.go
-        - internal/store/read_ops.go
-    open_questions:
-        - Do you want a recurring weekly summary entry pattern in .dory?
-    last_updated: "2026-02-03T19:11:24Z"
----
-op: item.create
-item:
-    id: D-01KGJHJ5BCCMWS1813B2ERXN2N
-    type: decision
-    topic: cli
-    oneliner: Standardize agent-facing CLI behavior and machine contracts
-    created: 2026-02-03T20:02:06.828112Z
-    body: |
-        # Decision
-
-        Adopt an agent-first CLI contract:
-
-        - `graph` and `import` must honor `--json/--yaml`.
-        - Invalid `--format` must fail fast.
-        - Commands should resolve `.dory` from current or parent directories.
-        - Non-interactive runs must not block on prompts.
-        - List outputs should include precise timestamps for chronology (`created_at`).
----
-op: item.create
-item:
     id: L-01KGJHJ5CBP92F5ETVSM4C5507
     type: lesson
     topic: cli
@@ -1198,69 +1158,6 @@ item:
 
         These changes improve native behavior for coding agents orchestrating CLI calls.
 ---
-op: state.update
-state:
-    goal: Make Dory CLI maximally native for coding agents
-    progress: Completed major UX consistency fixes and machine-contract hardening
-    next:
-        - Review remaining command overlap (e.g.
-        - ' recall vs list)'
-        - Consider agent-mode defaults for non-interactive execution
-    working_files:
-        - internal/commands/root.go
-        - internal/commands/graph.go
-        - internal/commands/import.go
-        - internal/store/read_ops.go
-    open_questions:
-        - Do we want to formally deprecate recall in favor of list/context for agent flows?
-    last_updated: "2026-02-03T20:02:06Z"
----
-op: item.create
-item:
-    id: D-01KGJJST4CAHYRVNCEA4JM32HK
-    type: decision
-    topic: cli-ux
-    oneliner: Canonical retrieval command is list --topic; recall remains hidden compatibility alias
-    created: 2026-02-03T20:23:46.060648Z
-    body: '# Decision\n\n## Context\nAgents were seeing overlap between  and , with different output schemas.\n\n## Decision\nUse  as the canonical retrieval flow. Keep  hidden as a compatibility alias that returns the same payload shape as .\n\n## Consequences\n- Less command-surface ambiguity for agents\n- One list payload schema to parse\n- Old scripts can still call  when needed'
----
-op: item.create
-item:
-    id: L-01KGJJSTH3BGHG867K27XE9R77
-    type: lesson
-    topic: cli-ux
-    severity: high
-    oneliner: In --agent mode list defaults to chronological sort unless --sort is explicitly set
-    created: 2026-02-03T20:23:46.467095Z
-    body: Agent mode is intended for replayable machine workflows. Defaulting  to  in this mode keeps temporal ordering intuitive across mixed type prefixes (L-/D-/P-).
----
-op: item.delete
-id: D-01KGJJST4CAHYRVNCEA4JM32HK
----
-op: item.delete
-id: L-01KGJJSTH3BGHG867K27XE9R77
----
-op: item.create
-item:
-    id: D-01KGJJTC7S5K77PPKX3A38M5SF
-    type: decision
-    topic: cli-ux
-    oneliner: Canonical retrieval command is list --topic; recall remains hidden compatibility alias
-    created: 2026-02-03T20:24:04.60141Z
-    body: |
-        # Decision
-
-        ## Context
-        Agents were seeing overlap between `recall` and `list --topic`, with different output schemas.
-
-        ## Decision
-        Use `list --topic` as the canonical retrieval flow. Keep `recall` hidden as a compatibility alias that returns the same payload shape as `list`.
-
-        ## Consequences
-        - Less command-surface ambiguity for agents
-        - One list payload schema to parse
-        - Old scripts can still call `recall` when needed
----
 op: item.create
 item:
     id: L-01KGJJTCB0C3NQBM72RJWN0M93
@@ -1271,3 +1168,85 @@ item:
     created: 2026-02-03T20:24:04.704093Z
     body: |
         Agent mode is intended for replayable machine workflows. Defaulting `list` to `--sort created` in this mode keeps temporal ordering intuitive across mixed type prefixes (L-/D-/P-).
+---
+op: item.create
+item:
+    id: P-01KGJ5XFHD22R0HGSNTBFW8RDA
+    type: convention
+    domain: cli
+    oneliner: Editor mode for humans, --body flag for agents
+    created: 2026-02-01T00:00:00Z
+    refs:
+        - P-01KGJ5XFHDHB2XG8N5NMAG6FR1
+    body: |-
+        # Dual Interface Pattern
+
+        ## For Humans
+
+        - Omit arguments to open $EDITOR with template
+        - `dory learn --topic foo` opens editor
+        - `dory edit D001` edits existing item
+
+        ## For Agents
+
+        - Use `--body "content"` flag for inline content
+        - Use `--body -` to pipe from stdin
+        - Programmatic, non-interactive
+---
+op: item.create
+item:
+    id: P-01KGJ5XFHDDNGGSDMG5WGRW075
+    type: convention
+    domain: cli
+    oneliner: All commands support --json and --yaml output flags
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # All commands support --json and --yaml output flags
+
+        ## Pattern
+
+        All commands support --json and --yaml output flags
+
+        ## Implementation
+
+        (Add implementation details here)
+---
+op: item.create
+item:
+    id: P-01KGJ5XFHDHB2XG8N5NMAG6FR1
+    type: convention
+    domain: cli
+    oneliner: Use --body flag or stdin for programmatic content input
+    created: 2026-01-31T00:00:00Z
+    body: |-
+        # Use --body flag or stdin for programmatic content input
+
+        ## Pattern
+
+        Use --body flag or stdin for programmatic content input
+
+        ## Implementation
+
+        (Add implementation details here)
+---
+op: item.create
+item:
+    id: P-01KGJENABRNSD6GW6RZ3BQQ9M3
+    type: convention
+    domain: workflow
+    oneliner: Record project progress with status + typed knowledge items
+    created: 2026-02-03T19:11:24.536648Z
+    refs:
+        - D-01KGJENA5FW5Y4XXFXYF4VVZ3H
+        - L-01KGJENA8KB3CS6WDT2970NXYJ
+    body: |
+        # Pattern
+
+        Use `status` for live session state and typed entries for persistent evidence.
+
+        ## Workflow
+
+        1. Update `status` when focus changes.
+        2. Store major architecture choices as `decision` items.
+        3. Store validation outcomes and caveats as `lesson` items.
+        4. Link related items via `refs` for navigable history.

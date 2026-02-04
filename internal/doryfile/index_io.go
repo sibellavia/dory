@@ -20,17 +20,11 @@ func (df *DoryFile) loadIndex() error {
 		return fmt.Errorf("failed to parse index: %w", err)
 	}
 
-	if index.Version == 0 {
-		index.Version = 2
-	}
-	if index.Version != 2 {
-		return fmt.Errorf("unsupported index version %d", index.Version)
-	}
 	if index.Format == "" {
-		index.Format = IndexFormat
+		index.Format = IndexFormat // backwards compat for old files
 	}
 	if index.Format != IndexFormat {
-		return fmt.Errorf("unsupported index format %q", index.Format)
+		return fmt.Errorf("unsupported format %q (expected %q)", index.Format, IndexFormat)
 	}
 	if index.State == nil {
 		index.State = &State{}
@@ -49,7 +43,6 @@ func (df *DoryFile) saveIndex() error {
 		return fmt.Errorf("index is nil")
 	}
 
-	df.Index.Version = 2
 	df.Index.Format = IndexFormat
 	df.Index.AppliedSeq = df.nextSeq
 	if df.logOffset <= 0 && df.knowledge != nil {

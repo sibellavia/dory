@@ -63,8 +63,7 @@ type SnapshotHead struct {
 
 // Index holds project metadata and cached state.
 type Index struct {
-	Version     int                      `yaml:"version,omitempty"`
-	Format      string                   `yaml:"format,omitempty"`
+	Format      string                   `yaml:"format"`
 	Project     string                   `yaml:"project"`
 	Description string                   `yaml:"description,omitempty"`
 	State       *State                   `yaml:"state,omitempty"`

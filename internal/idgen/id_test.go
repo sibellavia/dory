@@ -52,10 +52,10 @@ func TestNewTypedRejectsInvalidPrefix(t *testing.T) {
 
 func TestPrefixForType(t *testing.T) {
 	tests := map[string]string{
-		"lesson":   PrefixLesson,
-		"decision": PrefixDecision,
-		"pattern":  PrefixPattern,
-		"incident": PrefixCustom,
+		"lesson":     PrefixLesson,
+		"decision":   PrefixDecision,
+		"convention": PrefixConvention,
+		"incident":   PrefixCustom,
 	}
 	for itemType, want := range tests {
 		got, err := PrefixForType(itemType)

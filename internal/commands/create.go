@@ -15,32 +15,50 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var learnCmd = &cobra.Command{
-	Use:   "learn [oneliner]",
-	Short: "Add a new lesson",
-	Long: `Record something you learned (often the hard way).
+var createCmd = &cobra.Command{
+	Use:   "create [title]",
+	Short: "Create a knowledge item",
+	Long: `Create a new knowledge item (lesson, decision, or convention).
 
-If oneliner is provided, creates a quick lesson.
-If no oneliner is provided, opens your editor for full content.
+Examples:
+  dory create "Pool exhausts under load" --tag database --severity critical
+  dory create "Use Redis for sessions" --kind decision --tag backend
+  dory create "All handlers return {data,error}" --kind convention --tag api
+  dory create "Title" --tag api --body "# Details..."
+  cat notes.md | dory create "Title" --tag api --body -
 
-Use --body to provide the full markdown content directly:
-  dory learn "Lesson title" --topic mytopic --body "# Full markdown content..."
-
-Use --body - to read markdown content from stdin:
-  cat lesson.md | dory learn "Lesson title" --topic mytopic --body -`,
+Kinds:
+  lesson      Something learned (default) - supports --severity
+  decision    Architectural/technical choice
+  convention  Established standard or pattern`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		topic, _ := cmd.Flags().GetString("topic")
+		kind, _ := cmd.Flags().GetString("kind")
+		tag := resolveTag(cmd, "topic")
 		severityStr, _ := cmd.Flags().GetString("severity")
 		severity := models.Severity(severityStr)
 		bodyFlag, _ := cmd.Flags().GetString("body")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 
-		if topic == "" {
-			CheckError(fmt.Errorf("--topic is required"))
+		if tag == "" {
+			CheckError(fmt.Errorf("--tag is required"))
 		}
-		CheckError(validateSeverityFlag(severity))
+
+		// Validate kind
+		switch kind {
+		case "lesson", "decision", "convention":
+			// valid
+		default:
+			CheckError(fmt.Errorf("invalid --kind %q (use: lesson, decision, convention)", kind))
+		}
+
+		// Severity only applies to lessons
+		if kind == "lesson" {
+			CheckError(validateSeverityFlag(severity))
+		} else if severityStr != "normal" && severityStr != "" {
+			CheckError(fmt.Errorf("--severity only applies to lessons"))
+		}
 
 		s := store.New(doryRoot)
 		defer s.Close()
@@ -53,50 +71,62 @@ Use --body - to read markdown content from stdin:
 
 			// Check for body flag
 			if bodyFlag == "-" {
-				// Read from stdin
 				content, err := io.ReadAll(os.Stdin)
 				CheckError(err)
 				body = string(content)
 			} else if bodyFlag != "" {
 				body = bodyFlag
 			}
-
 		} else {
 			// Editor mode
-			content, err := openEditor(templates.LessonTemplate)
+			template := getTemplateForKind(kind)
+			content, err := openEditor(template)
 			CheckError(err)
-			if content == "" || content == templates.LessonTemplate {
+			if content == "" || content == template {
 				CheckError(fmt.Errorf("aborted: no content provided"))
 			}
 			oneliner, body = parseEditorContent(content)
 		}
 
 		runPluginHooks(plugin.HookBeforeCreate, map[string]interface{}{
-			"type":     "lesson",
+			"type":     kind,
 			"oneliner": oneliner,
-			"topic":    topic,
+			"topic":    tag,
 			"severity": string(severity),
 			"refs":     refs,
 		})
 
-		id, err := s.Learn(oneliner, topic, severity, body, refs)
+		var id string
+		var err error
+
+		switch kind {
+		case "lesson":
+			id, err = s.Learn(oneliner, tag, severity, body, refs)
+		case "decision":
+			id, err = s.Decide(oneliner, tag, "", body, refs)
+		case "convention":
+			id, err = s.Convention(oneliner, tag, body, refs)
+		}
 		CheckError(err)
 
 		runPluginHooks(plugin.HookAfterCreate, map[string]interface{}{
 			"id":       id,
-			"type":     "lesson",
+			"type":     kind,
 			"oneliner": oneliner,
-			"topic":    topic,
+			"topic":    tag,
 			"severity": string(severity),
 			"refs":     refs,
 		})
 
-		result := map[string]string{
+		result := map[string]interface{}{
 			"id":       id,
+			"kind":     kind,
 			"status":   "created",
 			"oneliner": oneliner,
-			"topic":    topic,
-			"severity": string(severity),
+			"tag":      tag,
+		}
+		if kind == "lesson" {
+			result["severity"] = string(severity)
 		}
 
 		OutputResult(cmd, result, func() {
@@ -105,24 +135,25 @@ Use --body - to read markdown content from stdin:
 	},
 }
 
-func init() {
-	learnCmd.Flags().StringP("topic", "t", "", "Topic for the lesson (required)")
-	learnCmd.Flags().StringP("severity", "s", "normal", "Severity level: critical, high, normal, low")
-	learnCmd.Flags().StringP("body", "b", "", "Full markdown body content (use - to read from stdin)")
-	learnCmd.Flags().StringSliceP("refs", "R", []string{}, "References to other knowledge items (e.g., L-01JX...,D-01JY...)")
-	RootCmd.AddCommand(learnCmd)
+func getTemplateForKind(kind string) string {
+	switch kind {
+	case "decision":
+		return templates.DecisionTemplate
+	case "convention":
+		return templates.ConventionTemplate
+	default:
+		return templates.LessonTemplate
+	}
 }
 
 // openEditor opens the user's preferred editor with initial content
 func openEditor(initialContent string) (string, error) {
-	// Create temp file
 	tmpfile, err := os.CreateTemp("", "dory-*.md")
 	if err != nil {
 		return "", err
 	}
 	defer os.Remove(tmpfile.Name())
 
-	// Write initial content
 	if _, err := tmpfile.WriteString(initialContent); err != nil {
 		return "", err
 	}
@@ -130,7 +161,6 @@ func openEditor(initialContent string) (string, error) {
 		return "", err
 	}
 
-	// Open editor
 	editor := fileio.GetEditor()
 	editorCmd := exec.Command(editor, tmpfile.Name())
 	editorCmd.Stdin = os.Stdin
@@ -141,7 +171,6 @@ func openEditor(initialContent string) (string, error) {
 		return "", err
 	}
 
-	// Read content back
 	content, err := os.ReadFile(tmpfile.Name())
 	if err != nil {
 		return "", err
@@ -154,7 +183,6 @@ func openEditor(initialContent string) (string, error) {
 func parseEditorContent(content string) (oneliner, body string) {
 	lines := strings.Split(content, "\n")
 
-	// Find the first heading for oneliner
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "# ") {
@@ -163,8 +191,15 @@ func parseEditorContent(content string) (oneliner, body string) {
 		}
 	}
 
-	// The body is the full content
 	body = content
-
 	return oneliner, body
+}
+
+func init() {
+	createCmd.Flags().StringP("kind", "k", "lesson", "Kind: lesson, decision, convention")
+	createCmd.Flags().StringP("tag", "T", "", "Tag/category (required)")
+	createCmd.Flags().StringP("severity", "S", "normal", "Severity: critical, high, normal, low (lessons only)")
+	createCmd.Flags().StringP("body", "b", "", "Full markdown body (use - for stdin)")
+	createCmd.Flags().StringSliceP("refs", "R", []string{}, "References (comma-separated, e.g., L-abc123,D-def456)")
+	RootCmd.AddCommand(createCmd)
 }

@@ -71,8 +71,8 @@ func (s *Store) Decide(oneliner, topic, rationale, body string, refs []string) (
 	return id, nil
 }
 
-// Pattern adds a new pattern.
-func (s *Store) Pattern(oneliner, domain, body string, refs []string) (string, error) {
+// Convention adds a new convention.
+func (s *Store) Convention(oneliner, domain, body string, refs []string) (string, error) {
 	var id string
 	err := s.withWriteLock(func() error {
 		if err := s.open(); err != nil {
@@ -80,19 +80,19 @@ func (s *Store) Pattern(oneliner, domain, body string, refs []string) (string, e
 		}
 
 		var err error
-		id, err = idgen.NewItemID("pattern")
+		id, err = idgen.NewItemID("convention")
 		if err != nil {
 			return err
 		}
 
 		fullBody := body
 		if fullBody == "" {
-			fullBody = fmt.Sprintf("# %s\n\n## Pattern\n\n%s\n\n## Implementation\n\n(Add implementation details here)\n", oneliner, oneliner)
+			fullBody = fmt.Sprintf("# %s\n\n## Convention\n\n%s\n\n## Implementation\n\n(Add implementation details here)\n", oneliner, oneliner)
 		}
 
-		entry := newEntry(id, "pattern", oneliner, "", domain, "", fullBody, refs)
+		entry := newEntry(id, "convention", oneliner, "", domain, "", fullBody, refs)
 		if err := s.df.Append(entry); err != nil {
-			return fmt.Errorf("failed to append pattern: %w", err)
+			return fmt.Errorf("failed to append convention: %w", err)
 		}
 		return nil
 	})
@@ -153,9 +153,10 @@ func (s *Store) Remove(id string) error {
 	})
 }
 
-// UpdateStatus updates the session state.
-func (s *Store) UpdateStatus(goal, progress, blocker string, next, workingFiles, openQuestions []string) error {
-	return s.withWriteLock(func() error {
+// UpdateStatus updates the session state and returns the full state after update.
+func (s *Store) UpdateStatus(goal, progress, blocker string, next, workingFiles, openQuestions []string) (*ContextState, error) {
+	var result *ContextState
+	err := s.withWriteLock(func() error {
 		if err := s.open(); err != nil {
 			return err
 		}
@@ -185,8 +186,21 @@ func (s *Store) UpdateStatus(goal, progress, blocker string, next, workingFiles,
 		}
 		state.LastUpdated = time.Now().UTC().Format(time.RFC3339)
 
-		return s.df.UpdateState(state)
+		if err := s.df.UpdateState(state); err != nil {
+			return err
+		}
+
+		// Return the full state
+		result = &ContextState{
+			Goal:        state.Goal,
+			Progress:    state.Progress,
+			Blocker:     state.Blocker,
+			Next:        state.Next,
+			LastUpdated: state.LastUpdated,
+		}
+		return nil
 	})
+	return result, err
 }
 
 // Compact removes deleted entries and rebuilds the file.

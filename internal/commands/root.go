@@ -31,6 +31,9 @@ func init() {
 	RootCmd.PersistentFlags().Bool("json", false, "Output in JSON format (shorthand for --format=json)")
 	RootCmd.PersistentFlags().Bool("yaml", false, "Output in YAML format (shorthand for --format=yaml)")
 	RootCmd.PersistentFlags().BoolVar(&agentMode, "agent", false, "Agent mode: machine-oriented defaults (YAML output, no interactive prompts)")
+
+	// Hide the auto-generated completion command
+	RootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
 
 // GetOutputFormat returns the output format from flags
@@ -137,4 +140,15 @@ func RequireStore() {
 		os.Exit(1)
 	}
 	doryRoot = root
+}
+
+// resolveTag returns the tag value, checking --tag first then falling back to
+// the legacy flag (--topic or --domain) for backwards compatibility.
+func resolveTag(cmd *cobra.Command, legacyFlag string) string {
+	tag, _ := cmd.Flags().GetString("tag")
+	if tag != "" {
+		return tag
+	}
+	legacy, _ := cmd.Flags().GetString(legacyFlag)
+	return legacy
 }

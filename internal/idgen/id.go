@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	PrefixEvent    = "E"
-	PrefixLesson   = "L"
-	PrefixDecision = "D"
-	PrefixPattern  = "P"
-	PrefixCustom   = "K"
+	PrefixEvent      = "E"
+	PrefixLesson     = "L"
+	PrefixDecision   = "D"
+	PrefixConvention = "P" // Historically "pattern", kept as P for backwards compatibility
+	PrefixCustom     = "K"
 )
 
 var (
@@ -41,8 +41,8 @@ func PrefixForType(itemType string) (string, error) {
 		return PrefixLesson, nil
 	case "decision":
 		return PrefixDecision, nil
-	case "pattern":
-		return PrefixPattern, nil
+	case "convention":
+		return PrefixConvention, nil
 	default:
 		if itemType == "" {
 			return "", errors.New("item type is required")

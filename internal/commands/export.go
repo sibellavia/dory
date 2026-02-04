@@ -18,13 +18,13 @@ var exportCmd = &cobra.Command{
 
 Examples:
   dory export                      # Export all knowledge
-  dory export --topic architecture # Export by topic
+  dory export --tag architecture   # Export by tag
   dory export D-01JX... D-01JY... L-01JX...  # Export specific items
   dory export --append CLAUDE.md   # Append to file`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		topic, _ := cmd.Flags().GetString("topic")
+		topic := resolveTag(cmd, "topic")
 		appendFile, _ := cmd.Flags().GetString("append")
 
 		s := store.New(doryRoot)
@@ -83,15 +83,15 @@ func exportAll(s *store.Store) (string, error) {
 	buf.WriteString("## Project Knowledge\n\n")
 
 	// Group by type
-	var lessons, decisions, patterns []store.ListItem
+	var lessons, decisions, conventions []store.ListItem
 	for _, item := range items {
 		switch item.Type {
 		case "lesson":
 			lessons = append(lessons, item)
 		case "decision":
 			decisions = append(decisions, item)
-		case "pattern":
-			patterns = append(patterns, item)
+		case "convention":
+			conventions = append(conventions, item)
 		}
 	}
 
@@ -113,10 +113,10 @@ func exportAll(s *store.Store) (string, error) {
 		buf.WriteString("\n")
 	}
 
-	if len(patterns) > 0 {
-		buf.WriteString("### Patterns\n\n")
-		sort.Slice(patterns, func(i, j int) bool { return patterns[i].ID < patterns[j].ID })
-		for _, item := range patterns {
+	if len(conventions) > 0 {
+		buf.WriteString("### Conventions\n\n")
+		sort.Slice(conventions, func(i, j int) bool { return conventions[i].ID < conventions[j].ID })
+		for _, item := range conventions {
 			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", item.ID, item.Oneliner))
 		}
 		buf.WriteString("\n")
@@ -135,15 +135,15 @@ func exportByTopic(s *store.Store, topic string) (string, error) {
 	buf.WriteString(fmt.Sprintf("## Knowledge: %s\n\n", topic))
 
 	// Group by type
-	var lessons, decisions, patterns []store.ListItem
+	var lessons, decisions, conventions []store.ListItem
 	for _, item := range items {
 		switch item.Type {
 		case "lesson":
 			lessons = append(lessons, item)
 		case "decision":
 			decisions = append(decisions, item)
-		case "pattern":
-			patterns = append(patterns, item)
+		case "convention":
+			conventions = append(conventions, item)
 		}
 	}
 
@@ -165,10 +165,10 @@ func exportByTopic(s *store.Store, topic string) (string, error) {
 		buf.WriteString("\n")
 	}
 
-	if len(patterns) > 0 {
-		buf.WriteString("### Patterns\n\n")
-		sort.Slice(patterns, func(i, j int) bool { return patterns[i].ID < patterns[j].ID })
-		for _, item := range patterns {
+	if len(conventions) > 0 {
+		buf.WriteString("### Conventions\n\n")
+		sort.Slice(conventions, func(i, j int) bool { return conventions[i].ID < conventions[j].ID })
+		for _, item := range conventions {
 			buf.WriteString(fmt.Sprintf("- **%s**: %s\n", item.ID, item.Oneliner))
 		}
 		buf.WriteString("\n")
@@ -211,7 +211,9 @@ func exportItems(s *store.Store, ids []string) (string, error) {
 }
 
 func init() {
-	exportCmd.Flags().StringP("topic", "t", "", "Export items for a specific topic")
+	exportCmd.Flags().StringP("tag", "T", "", "Export items for a specific tag/category")
+	exportCmd.Flags().StringP("topic", "t", "", "Alias for --tag (deprecated)")
 	exportCmd.Flags().StringP("append", "a", "", "Append output to file")
+	exportCmd.Flags().MarkHidden("topic")
 	RootCmd.AddCommand(exportCmd)
 }

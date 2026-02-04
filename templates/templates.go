@@ -44,26 +44,26 @@ What other options did you consider and why were they rejected?
 What are the implications of this decision?
 `
 
-// PatternTemplate is the template for creating new patterns
-const PatternTemplate = `# Pattern Name
+// ConventionTemplate is the template for creating new conventions
+const ConventionTemplate = `# Convention Name
 
-## Pattern
+## Convention
 
-Describe the pattern or convention
+Describe the standard or convention
 
 ## Rationale
 
-Why is this pattern used?
+Why is this convention used?
 
 ## Implementation
 
-How to implement this pattern
+How to follow this convention
 
 ## Examples
 
 Show examples of correct usage
 
-## Anti-Patterns
+## Exceptions
 
-What to avoid
+When this convention doesn't apply
 `

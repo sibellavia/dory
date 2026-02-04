@@ -12,5 +12,6 @@ Custom types are provided by enabled plugins.`,
 }
 
 func init() {
+	typeCmd.Hidden = true
 	RootCmd.AddCommand(typeCmd)
 }

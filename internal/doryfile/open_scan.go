@@ -38,7 +38,6 @@ func Create(dir, project, description string) (*DoryFile, error) {
 		nextSeq:       0,
 		logOffset:     int64(len(header)),
 		Index: &Index{
-			Version:     2,
 			Format:      IndexFormat,
 			Project:     project,
 			Description: description,
@@ -132,7 +131,7 @@ func (df *DoryFile) scanEvents(reader *bufio.Reader, startPos int64) error {
 }
 
 func (df *DoryFile) hydrateFromSnapshot(startPos int64) bool {
-	if df.Index == nil || df.Index.Version != 2 || df.Index.Format != IndexFormat || len(df.Index.Heads) == 0 {
+	if df.Index == nil || df.Index.Format != IndexFormat || len(df.Index.Heads) == 0 {
 		return false
 	}
 	if df.Index.LogOffset < startPos {

@@ -25,7 +25,7 @@ CLI flags override frontmatter values.
 Use --split to parse numbered items (e.g., "1) Title" or "1. Title") as separate entries.
 
 Examples:
-  dory import docs/api-gotchas.md --type lesson --topic api
+  dory import docs/api-details.md --type lesson --topic api
   dory import docs/why-redis.md --type decision --topic caching
   dory import notes.md  # uses frontmatter if present
   dory import lessons.md --type lesson --topic infra --split`,
@@ -41,8 +41,12 @@ Examples:
 		CheckError(err)
 
 		itemType, _ := cmd.Flags().GetString("type")
-		topic, _ := cmd.Flags().GetString("topic")
-		domain, _ := cmd.Flags().GetString("domain")
+		tag := resolveTag(cmd, "topic")
+		if tag == "" {
+			tag = resolveTag(cmd, "domain")
+		}
+		topic := tag
+		domain := tag
 		severityStr, _ := cmd.Flags().GetString("severity")
 		refs, _ := cmd.Flags().GetStringSlice("refs")
 		split, _ := cmd.Flags().GetBool("split")
@@ -69,7 +73,7 @@ Examples:
 		}
 
 		if itemType == "" {
-			CheckError(fmt.Errorf("--type is required (lesson, decision, pattern) or specify in frontmatter"))
+			CheckError(fmt.Errorf("--type is required (lesson, decision, convention) or specify in frontmatter"))
 		}
 		CheckError(validateItemType(itemType))
 
@@ -130,12 +134,15 @@ Examples:
 }
 
 func init() {
-	importCmd.Flags().String("type", "", "Item type: lesson, decision, pattern")
-	importCmd.Flags().StringP("topic", "t", "", "Topic (for lessons and decisions)")
-	importCmd.Flags().StringP("domain", "d", "", "Domain (for patterns)")
-	importCmd.Flags().StringP("severity", "s", "", "Severity: critical, high, normal, low")
-	importCmd.Flags().StringSliceP("refs", "R", nil, "References to other items")
+	importCmd.Flags().String("type", "", "Item type: lesson, decision, convention")
+	importCmd.Flags().StringP("tag", "T", "", "Tag/category for the item")
+	importCmd.Flags().StringP("topic", "t", "", "Alias for --tag (deprecated)")
+	importCmd.Flags().StringP("domain", "d", "", "Alias for --tag (deprecated)")
+	importCmd.Flags().StringP("severity", "S", "", "Severity: critical, high, normal, low")
+	importCmd.Flags().StringSliceP("refs", "R", nil, "References to other items (comma-separated)")
 	importCmd.Flags().Bool("split", false, "Split numbered items into separate entries")
+	importCmd.Flags().MarkHidden("topic")
+	importCmd.Flags().MarkHidden("domain")
 	RootCmd.AddCommand(importCmd)
 }
 
@@ -151,16 +158,16 @@ func importItem(s *store.Store, itemType, oneliner, body, topic, domain string, 
 			return "", fmt.Errorf("--topic is required for decisions")
 		}
 		return s.Decide(oneliner, topic, "", body, refs)
-	case "pattern":
+	case "convention":
 		if domain == "" {
 			domain = topic
 		}
 		if domain == "" {
-			return "", fmt.Errorf("--domain is required for patterns")
+			return "", fmt.Errorf("--tag is required for conventions")
 		}
-		return s.Pattern(oneliner, domain, body, refs)
+		return s.Convention(oneliner, domain, body, refs)
 	default:
-		return "", fmt.Errorf("unknown type %q (use lesson, decision, or pattern)", itemType)
+		return "", fmt.Errorf("unknown type %q (use lesson, decision, or convention)", itemType)
 	}
 }
 

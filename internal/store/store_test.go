@@ -101,7 +101,7 @@ func TestStoreRefs(t *testing.T) {
 	}
 	defer s.Close()
 
-	// Create items with refs: lesson <- decision <- pattern.
+	// Create items with refs: lesson <- decision <- convention.
 	lessonID, err := s.Learn("base lesson", "topic", models.SeverityNormal, "", nil)
 	if err != nil {
 		t.Fatalf("learn: %v", err)
@@ -112,9 +112,9 @@ func TestStoreRefs(t *testing.T) {
 		t.Fatalf("decide: %v", err)
 	}
 
-	patternID, err := s.Pattern("pattern from decision", "domain", "", []string{decisionID})
+	conventionID, err := s.Convention("convention from decision", "domain", "", []string{decisionID})
 	if err != nil {
-		t.Fatalf("pattern: %v", err)
+		t.Fatalf("convention: %v", err)
 	}
 
 	refInfo, err := s.Refs(decisionID)
@@ -130,8 +130,8 @@ func TestStoreRefs(t *testing.T) {
 		t.Fatalf("expected %s to ref %s, got %+v", decisionID, lessonID, refInfo.RefsTo)
 	}
 
-	if len(refInfo.ReferencedBy) != 1 || refInfo.ReferencedBy[0].ID != patternID {
-		t.Fatalf("expected %s to be referenced by %s, got %+v", decisionID, patternID, refInfo.ReferencedBy)
+	if len(refInfo.ReferencedBy) != 1 || refInfo.ReferencedBy[0].ID != conventionID {
+		t.Fatalf("expected %s to be referenced by %s, got %+v", decisionID, conventionID, refInfo.ReferencedBy)
 	}
 
 	refInfo, err = s.Refs(lessonID)
@@ -147,17 +147,17 @@ func TestStoreRefs(t *testing.T) {
 		t.Fatalf("expected %s to be referenced by %s, got %+v", lessonID, decisionID, refInfo.ReferencedBy)
 	}
 
-	refInfo, err = s.Refs(patternID)
+	refInfo, err = s.Refs(conventionID)
 	if err != nil {
-		t.Fatalf("refs %s: %v", patternID, err)
+		t.Fatalf("refs %s: %v", conventionID, err)
 	}
 
 	if len(refInfo.RefsTo) != 1 || refInfo.RefsTo[0].ID != decisionID {
-		t.Fatalf("expected %s to ref %s, got %+v", patternID, decisionID, refInfo.RefsTo)
+		t.Fatalf("expected %s to ref %s, got %+v", conventionID, decisionID, refInfo.RefsTo)
 	}
 
 	if len(refInfo.ReferencedBy) != 0 {
-		t.Fatalf("expected %s to have no referenced_by, got %+v", patternID, refInfo.ReferencedBy)
+		t.Fatalf("expected %s to have no referenced_by, got %+v", conventionID, refInfo.ReferencedBy)
 	}
 
 	_, err = s.Refs("X999")
@@ -184,9 +184,9 @@ func TestStoreExpand(t *testing.T) {
 		t.Fatalf("decide: %v", err)
 	}
 
-	patternID, err := s.Pattern("pattern", "domain", "Pattern body", []string{decisionID})
+	conventionID, err := s.Convention("convention", "domain", "Convention body", []string{decisionID})
 	if err != nil {
-		t.Fatalf("pattern: %v", err)
+		t.Fatalf("convention: %v", err)
 	}
 
 	result, err := s.Expand(decisionID, 1)
@@ -206,8 +206,8 @@ func TestStoreExpand(t *testing.T) {
 	for _, item := range result.Connected {
 		connectedIDs[item.ID] = true
 	}
-	if !connectedIDs[lessonID] || !connectedIDs[patternID] {
-		t.Fatalf("expected %s and %s in connected, got %v", lessonID, patternID, result.Connected)
+	if !connectedIDs[lessonID] || !connectedIDs[conventionID] {
+		t.Fatalf("expected %s and %s in connected, got %v", lessonID, conventionID, result.Connected)
 	}
 
 	result, err = s.Expand(lessonID, 1)

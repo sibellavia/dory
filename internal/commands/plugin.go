@@ -13,5 +13,6 @@ Plugins are discovered from .dory/plugins/<plugin>/plugin.yaml and are opt-in.`,
 }
 
 func init() {
+	pluginCmd.Hidden = true
 	RootCmd.AddCommand(pluginCmd)
 }

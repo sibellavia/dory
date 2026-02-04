@@ -30,6 +30,7 @@ var initCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		project, _ := cmd.Flags().GetString("project")
 		description, _ := cmd.Flags().GetString("description")
+		noAppend, _ := cmd.Flags().GetBool("no-append")
 
 		// Default project name to current directory name
 		if project == "" {
@@ -46,21 +47,23 @@ var initCmd = &cobra.Command{
 		// Create DORY.md if it doesn't exist
 		doryMdCreated, createErr := createDoryMd()
 
-		// Auto-append to CLAUDE.md and/or AGENTS.md if they exist
-		agentFiles := []string{"CLAUDE.md", "AGENTS.md"}
+		// Auto-append to CLAUDE.md and/or AGENTS.md if they exist (unless --no-append)
 		var appendedTo []string
 		var warnings []string
 		if createErr != nil {
 			warnings = append(warnings, fmt.Sprintf("failed to create DORY.md: %v", createErr))
 		}
-		for _, file := range agentFiles {
-			appended, err := appendDoryInstructions(file)
-			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("failed to update %s: %v", file, err))
-				continue
-			}
-			if appended {
-				appendedTo = append(appendedTo, file)
+		if !noAppend {
+			agentFiles := []string{"CLAUDE.md", "AGENTS.md"}
+			for _, file := range agentFiles {
+				appended, err := appendDoryInstructions(file)
+				if err != nil {
+					warnings = append(warnings, fmt.Sprintf("failed to update %s: %v", file, err))
+					continue
+				}
+				if appended {
+					appendedTo = append(appendedTo, file)
+				}
 			}
 		}
 
@@ -147,5 +150,6 @@ func appendDoryInstructions(filename string) (bool, error) {
 func init() {
 	initCmd.Flags().StringP("project", "p", "", "Project name (default: current directory name)")
 	initCmd.Flags().StringP("description", "d", "", "Project description")
+	initCmd.Flags().Bool("no-append", false, "Don't append instructions to CLAUDE.md/AGENTS.md")
 	RootCmd.AddCommand(initCmd)
 }

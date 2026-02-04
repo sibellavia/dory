@@ -12,12 +12,34 @@ import (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all items",
-	Long:  `List all knowledge items (core and custom types) with optional filters.`,
+	Short: "List items or tags",
+	Long: `List all knowledge items (core and custom types) with optional filters.
+
+Use --tags to list all tags with item counts instead of items.
+
+Examples:
+  dory list                      # List all items
+  dory list --tag database       # Filter by tag
+  dory list --type lesson        # Filter by type
+  dory list --tags               # List all tags with counts`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RequireStore()
 
-		topic, _ := cmd.Flags().GetString("topic")
+		showTags, _ := cmd.Flags().GetBool("tags")
+
+		s := store.New(doryRoot)
+		defer s.Close()
+
+		// --tags mode: show tags with counts
+		if showTags {
+			tags, err := s.Topics()
+			CheckError(err)
+			OutputResult(cmd, tags, func() { renderTagsHuman(tags) })
+			return
+		}
+
+		// Default: list items
+		topic := resolveTag(cmd, "topic")
 		itemType, _ := cmd.Flags().GetString("type")
 		severityStr, _ := cmd.Flags().GetString("severity")
 		severity := models.Severity(severityStr)
@@ -43,8 +65,6 @@ var listCmd = &cobra.Command{
 			CheckError(fmt.Errorf("--since must be earlier than or equal to --until"))
 		}
 
-		s := store.New(doryRoot)
-		defer s.Close()
 		items, err := s.List(topic, itemType, severity, since, until)
 		CheckError(err)
 		sortListItems(items, sortKey, desc)
@@ -54,13 +74,16 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	listCmd.Flags().StringP("topic", "t", "", "Filter by topic")
+	listCmd.Flags().Bool("tags", false, "List all tags with item counts")
+	listCmd.Flags().StringP("tag", "T", "", "Filter by tag/category")
+	listCmd.Flags().StringP("topic", "t", "", "Alias for --tag (deprecated)")
 	listCmd.Flags().String("type", "", "Filter by type (e.g. lesson, decision, pattern, or plugin custom type)")
-	listCmd.Flags().StringP("severity", "s", "", "Filter by severity: critical, high, normal, low")
+	listCmd.Flags().StringP("severity", "S", "", "Filter by severity: critical, high, normal, low")
 	listCmd.Flags().String("since", "", "Show items created on or after date (YYYY-MM-DD)")
 	listCmd.Flags().String("until", "", "Show items created on or before date (YYYY-MM-DD)")
-	listCmd.Flags().String("sort", "id", "Sort by: id, created")
+	listCmd.Flags().StringP("sort", "s", "id", "Sort by: id, created")
 	listCmd.Flags().Bool("desc", false, "Sort in descending order")
+	listCmd.Flags().MarkHidden("topic")
 	RootCmd.AddCommand(listCmd)
 }
 
@@ -112,6 +135,17 @@ func renderListHuman(items []store.ListItem) {
 			topicStr,
 			item.Oneliner,
 			severityIndicator)
+	}
+}
+
+func renderTagsHuman(tags []store.TopicInfo) {
+	if len(tags) == 0 {
+		fmt.Println("No tags found")
+		return
+	}
+
+	for _, t := range tags {
+		fmt.Printf("%-20s  %d items\n", t.Name, t.Count)
 	}
 }
 
