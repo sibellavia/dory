@@ -19,8 +19,9 @@ This project uses dory for persistent knowledge. At session start:
 cat .dory/index.yaml
 ` + "```" + `
 
-Record lessons (` + "`dory learn`" + `), decisions (` + "`dory decide`" + `), and patterns (` + "`dory pattern`" + `).
-Update status before ending (` + "`dory status`" + `).
+Create items with ` + "`dory create --kind <lesson|decision|convention>`" + `.
+Update context before ending with ` + "`dory context`" + `.
+See DORY.md for full reference.
 `
 
 var initCmd = &cobra.Command{
