@@ -7,7 +7,7 @@ import (
 	"github.com/sibellavia/dory/internal/commands"
 )
 
-var version = "0.4.0"
+var version = "" // set via -ldflags "-X main.version=..."
 
 func main() {
 	commands.RootCmd.Version = getVersion()
@@ -17,10 +17,13 @@ func main() {
 }
 
 func getVersion() string {
+	if version != "" {
+		return version
+	}
 	if info, ok := debug.ReadBuildInfo(); ok {
 		if info.Main.Version != "" && info.Main.Version != "(devel)" {
 			return info.Main.Version
 		}
 	}
-	return version
+	return ""
 }
